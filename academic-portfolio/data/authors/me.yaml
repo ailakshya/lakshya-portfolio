@@ -1,0 +1,76 @@
+schema: hugoblox/author/v1
+slug: me
+is_owner: true
+name:
+  display: Lakshya
+  given: Lakshya
+  family: ""
+  alternate: ''
+  pronunciation: ''
+  pronouns: he/him
+postnominals: []
+status:
+  icon: "🤖"
+role: AI Researcher & Systems Engineer
+bio: |
+  M.Tech AI & ML student specializing in Multimodal Representation Learning and Advanced Systems Engineering.
+
+affiliations:
+  - name: Manipal Institute of Technology
+    url: https://manipal.edu/mit.html
+
+links:
+  - icon: at-symbol
+    url: mailto:ailakshya@gmail.com
+    label: E-mail Me
+  - icon: brands/github
+    url: https://github.com/ailakshya
+  - icon: brands/linkedin
+    url: https://linkedin.com/in/ailakshya
+
+interests:
+  - Multimodal AI
+  - Systems Engineering
+  - GPU Optimization
+  - Golang & PostgreSQL
+
+education:
+  - degree: M.Tech in AI & ML
+    institution: Manipal Institute of Technology
+    start: 2025-01-01
+    end: 2027-01-01
+    summary: |
+      specializing in Multimodal Representation Learning and Advanced Systems Engineering.
+  - degree: B.Tech in CSE
+    institution: SRMIST, Chennai
+    start: 2021-01-01
+    end: 2025-01-01
+
+experience:
+  - role: AI Researcher & Systems Engineer
+    org: Manipal Institute of Technology
+    start: 2025-01-01
+    summary: |
+      specializing in Multimodal Representation Learning and Advanced Systems Engineering. My research focuses on solving fundamental problems like "Modality Laziness" in unified models.
+
+skills:
+  - name: Technical Skills
+    items:
+      - label: Python
+        level: 5
+      - label: Pytorch
+        level: 4
+      - label: Go
+        level: 4
+      - label: SQL
+        level: 4
+
+languages:
+  - name: English
+    level: 5
+    label: Fluent
+  - name: Hindi
+    level: 5
+    label: Fluent
+
+awards: []
