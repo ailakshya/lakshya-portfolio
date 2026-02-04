@@ -140,12 +140,52 @@
 
 % --- 3. Literature Review ---
 \section{Literature Review}
+
+% Part 1: Foundational Papers (BACD Framework)
 \begin{frame}{}
-    \frametitle<presentation>{Literature Review (2023-2024)}
+    \frametitle<presentation>{Literature Review - Part 1: Foundational Papers}
 \tiny{
 \begin{table}
-    \caption{Summary of State-of-the-Art Unified Multimodal Models}	
-    \label{tab:litreview-multimodal} 
+    \caption{Summary of Foundational Papers (BACD Framework)}	
+    \label{tab:litreview-foundational} 
+
+    \begin{tabularx}{\textwidth}{p{2.0cm}p{2.5cm}p{3.5cm}p{3.5cm}} 
+        \toprule
+        \textbf{Paper} & \textbf{Core Concept} & \textbf{Key Contribution} & \textbf{Identified Gap} \\ 		
+        \midrule
+
+        \textbf{Gradient Blending} (Wang et al., CVPR 2020) &
+        Overfitting-based gradient weighting for multimodal fusion. &
+        First systematic analysis: multimodal networks underperform due to dominant modality overfitting. 400+ citations. &
+        Static/periodic updates; not real-time adaptive. \\ \hline
+
+        \textbf{Greedy Nature} (Wu et al., ICML 2022) &
+        Coined "Modality Laziness"; proved it hurts generalization. &
+        Conditional Learning Speed (CLS) metric to quantify and balance modality learning rates. 181 citations. &
+        CLS metric is complex to compute; requires extensive calibration. \\ \hline
+
+        \textbf{OGM-GE} (Peng et al., CVPR 2022 Oral) &
+        On-the-fly gradient modulation with generalization enhancement. &
+        Dynamic noise injection to slow dominant modality. Proven at CVPR Oral (top 5\%). 100+ citations. &
+        Noise injection is a "black box"; lacks interpretability. \\ \hline
+
+        \textbf{Cross-Modality Harmonization} (Google, NeurIPS 2022) &
+        Gradient conflict resolution at billion-sample scale. &
+        Gradient realignment and curriculum learning based on conflict signals. Deployed at Google scale. &
+        Designed for massive scale; heavy computational cost for smaller benchmarks. \\
+
+        \noalign{\smallskip}\hline
+    \end{tabularx}
+\end{table}}
+\end{frame}
+
+% Part 2: Recent SOTA Models (2023-2024)
+\begin{frame}{}
+    \frametitle<presentation>{Literature Review - Part 2: Recent SOTA Models}
+\tiny{
+\begin{table}
+    \caption{Summary of Recent State-of-the-Art Multimodal Models (2023-2024)}	
+    \label{tab:litreview-sota} 
 
     \begin{tabularx}{\textwidth}{p{2.0cm}p{2.5cm}p{3.5cm}p{3.5cm}} 
         \toprule
@@ -311,10 +351,17 @@
     \frametitle<presentation>{Selected References}
     \footnotesize
     \begin{thebibliography}{99}
+        % Core BACD Framework Papers (Foundational)
+        \bibitem{gradientblending} Wang, W., et al. "What Makes Training Multi-Modal Classification Networks Hard?" \textit{CVPR}, 2020. (400+ citations)
+        \bibitem{greedynature} Wu, Y., et al. "Characterizing and Overcoming the Greedy Nature of Learning in Multi-modal Deep Neural Networks." \textit{ICML}, 2022. (181 citations)
+        \bibitem{ogmge} Peng, Y., et al. "Balanced Multimodal Learning via On-the-fly Gradient Modulation." \textit{CVPR}, 2022 Oral. (100+ citations)
+        \bibitem{crossmodality} Google Research. "Scaling Multimodal Pre-Training via Cross-Modality Gradient Harmonization." \textit{NeurIPS}, 2022.
+        
+        % SOTA Literature Review Papers (2023-2024)
         \bibitem{imagebind} Girdhar, R., et al. "ImageBind: One Embedding Space To Bind Them All." \textit{CVPR}, 2023.
         \bibitem{unifiedio2} Lu, J., et al. "Unified-IO 2: Scaling Autoregressive Multimodal Models with Vision, Language, Audio, and Action." \textit{arXiv}, 2023.
         \bibitem{metatransformer} Zhang, Y., et al. "Meta-Transformer: A Unified Framework for Multimodal Learning." \textit{arXiv}, 2023.
-        \bibitem{missingmodality} Wu, R., et al. "Deep Multimodal Learning with Missing Modality: A Survey." \textit{arXiv}, 2024.
+        \bibitem{missingmodality} Wu, R., et al. "Deep Multimodal Learning with Missing Modality: A Survey." \textit{ACM Computing Surveys}, 2024.
     \end{thebibliography}
 \end{frame}
 

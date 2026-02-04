@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 100%;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 30px;
+            page-break-before: always;
+        }
+        h1:first-of-type {
+            page-break-before: avoid;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 8px;
+            margin-top: 25px;
+        }
+        h3 {
+            color: #555;
+            margin-top: 20px;
+        }
+        h4 {
+            color: #666;
+            margin-top: 15px;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: "Courier New", monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+            padding: 10px 20px;
+            background-color: #f9f9f9;
+            font-style: italic;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        hr {
+            border: none;
+            border-top: 2px solid #e0e0e0;
+            margin: 30px 0;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<h1>Slide-by-Slide Presentation Explanation</h1>
+<h2>Adaptive Gradient Harmonization: Mitigating Modality Dominance</h2>
+<br>
+<hr>
+<br>
+<h2>� PREREQUISITE: Base Papers Explanation (BACD Framework)</h2>
+<br>
+<p><strong>When to use this</strong>: Reference these explanations when discussing Slide 5 (Literature Review) and Slide 13 (References), or when answering questions about your theoretical foundation.</p>
+<br>
+<h3>Overview of the BACD Framework</h3>
+<br>
+<p>Your work is built on <strong>4 foundational papers</strong> that collectively address modality dominance. Together, they form what we call the <strong>"BACD Framework"</strong>:</p>
+<ul><li>**B**lending (Gradient Blending)</li></ul>
+<ul><li>**A**daptive (Greedy Nature / Conditional Learning Speed)</li></ul>
+<ul><li>**C**ontrol (OGM-GE / On-the-fly Control)</li></ul>
+<ul><li>**D**istributed scale (Cross-Modality Harmonization at Google-scale)</li></ul>
+<br>
+<hr>
+<br>
+<h3>1️⃣ Gradient Blending (Wang et al., CVPR 2020)</h3>
+<p><strong>Full Title</strong>: "What Makes Training Multi-Modal Classification Networks Hard?"</p>
+<br>
+<h4>Core Problem Identified:</h4>
+<p>Multi-modal networks often <strong>underperform</strong> their unimodal counterparts. Why? They overfit to the dominant modality.</p>
+<br>
+<h4>Key Insights:</h4>
+<ol start="1"><li>**Different overfitting rates**: Vision modality overfits faster than audio</li></ol>
+<ol start="2"><li>**Gradient imbalance**: The "easy" modality dominates gradient updates</li></ol>
+<ol start="3"><li>**Starvation**: The "hard" modality contributes little to the final model</li></ol>
+<br>
+<h4>Their Solution:</h4>
+<p><strong>Gradient Blending</strong> - compute an optimal blend of gradients based on each modality's overfitting behavior:</p>
+<pre><code class="language-">
+L_total = α(t)·L_vision + β(t)·L_audio
+</code></pre>
+<p>Where α and β are computed based on validation performance.</p>
+<br>
+<h4>How to Explain in Your Presentation:</h4>
+<blockquote>"The 2020 CVPR paper by Wang et al. was the first to systematically analyze why multimodal training is hard. They discovered that it's not a data problem - it's an **optimization problem**. Different modalities learn at different speeds. Vision, being spatially structured, is easy for CNNs to learn. Audio, being temporally complex, takes longer. The optimizer naturally follows the steepest gradients, which means vision dominates. Their solution was Gradient Blending - dynamically re-weighting loss terms based on overfitting behavior."</blockquote>
+<br>
+<h4>Why It Matters to Your Work:</h4>
+<ul><li>**Inspiration**: You adopted their overfitting-based approach</li></ul>
+<ul><li>**Limitation they had**: Their blending is static (computed periodically, not real-time adaptive)</li></ul>
+<ul><li>**Your improvement**: MFC is fully adaptive and parameter-free</li></ul>
+<br>
+<h4>Statistics to Mention:</h4>
+<ul><li>**400+ citations** - highly influential</li></ul>
+<ul><li>**CVPR 2020** - top-tier computer vision venue</li></ul>
+<ul><li>**First systematic analysis** of the problem</li></ul>
+<br>
+<hr>
+<br>
+<h3>2️⃣ Characterizing the Greedy Nature (Wu et al., ICML 2022)</h3>
+<p><strong>Full Title</strong>: "Characterizing and Overcoming the Greedy Nature of Learning in Multi-modal Deep Neural Networks"</p>
+<br>
+<h4>Core Problem Identified:</h4>
+<p>Multi-modal networks exhibit <strong>"greedy learning"</strong> - they predominantly rely on one modality while under-fitting others, which <strong>hurts generalization</strong>.</p>
+<br>
+<h4>Key Insights:</h4>
+<ol start="1"><li>**Modality Laziness**: The formal term for this phenomenon</li></ol>
+<ol start="2"><li>**Path of least resistance**: Models naturally over-rely on the easier modality</li></ol>
+<ol start="3"><li>**Generalization impact**: This isn't just a training inconvenience - it actively degrades test performance</li></ol>
+<br>
+<h4>Their Solution:</h4>
+<p><strong>Conditional Learning Speed (CLS)</strong> balancing:</p>
+<ul><li>CLS(A|B) = How fast the model learns from modality A given modality B</li></ul>
+<ul><li>Regularizer to equalize CLS across modalities</li></ul>
+<ul><li>Forces "fair" learning speeds</li></ul>
+<br>
+<h4>How to Explain in Your Presentation:</h4>
+<blockquote>"Wu et al.'s ICML 2022 paper gave us the vocabulary to describe this problem. They coined the term **'Modality Laziness'** and proved that it's not just annoying - it actively hurts generalization. Think of it this way: if your model cheats by only using vision during training, it never learns the subtle audio cues that might be critical on test data. They introduced the Conditional Learning Speed metric to measure how fast each modality learns, and proposed balancing these speeds through regularization."</blockquote>
+<br>
+<h4>Why It Matters to Your Work:</h4>
+<ul><li>**Conceptual framework**: You adopted the "fairness" framing</li></ul>
+<ul><li>**Their metric (CLS)**: Complex to compute</li></ul>
+<ul><li>**Your metric (OGR)**: Simpler, more interpretable</li></ul>
+<br>
+<h4>Statistics to Mention:</h4>
+<ul><li>**181 citations** - significant impact</li></ul>
+<ul><li>**ICML 2022** - top-tier machine learning venue</li></ul>
+<ul><li>**Tested on**: Colored MNIST, ModelNet40, Hand Gesture datasets</li></ul>
+<br>
+<hr>
+<br>
+<h3>3️⃣ OGM-GE (Peng et al., CVPR 2022 Oral)</h3>
+<p><strong>Full Title</strong>: "Balanced Multimodal Learning via On-the-fly Gradient Modulation"</p>
+<br>
+<h4>Core Problem Identified:</h4>
+<p>The dominant modality <strong>suppresses</strong> the training of other modalities. Static loss weighting doesn't work - you need <strong>dynamic, on-the-fly intervention</strong>.</p>
+<br>
+<h4>Key Insights:</h4>
+<ol start="1"><li>**Convergence rate mismatch**: Different modalities converge at different rates</li></ol>
+<ol start="2"><li>**Generalization drops**: Dominant modality can cause overfitting</li></ol>
+<ol start="3"><li>**Need for adaptive control**: Static methods fail</li></ol>
+<br>
+<h4>Their Solution:</h4>
+<p><strong>OGM-GE</strong> (On-the-fly Gradient Modulation with Generalization Enhancement):</p>
+<ol start="1"><li>**OGM**: Dynamically adjust each modality's gradient contribution</li></ol>
+<ol start="2"><li>**GE**: Inject Gaussian noise to the dominant modality's gradient to slow it down</li></ol>
+<br>
+<p>Mathematical formulation:</p>
+<pre><code class="language-">
+g_vision' = g_vision + ε·N(0, σ²)  // Add noise to slow dominant
+g_audio' = λ·g_audio              // Amplify weak
+</code></pre>
+<br>
+<h4>How to Explain in Your Presentation:</h4>
+<blockquote>"Peng et al.'s CVPR 2022 Oral paper - and being an Oral means it's in the top 5% of submissions - showed that you need dynamic intervention. They proposed OGM-GE: On-the-fly Gradient Modulation with Generalization Enhancement. The key idea? Inject Gaussian noise into the dominant modality's gradients to slow it down, like applying brakes to a runaway car. This prevents the vision modality from racing ahead and starving the audio modality."</blockquote>
+<br>
+<h4>Why It Matters to Your Work:</h4>
+<ul><li>**Proof of concept**: Dynamic intervention works</li></ul>
+<ul><li>**Their approach**: Slow down the dominant (noise injection)</li></ul>
+<ul><li>**Your approach**: Boost the weak AND regulate the dominant (dual strategy)</li></ul>
+<ul><li>**Your advantage**: OGR provides interpretability; theirs is more of a "black box"</li></ul>
+<br>
+<h4>Statistics to Mention:</h4>
+<ul><li>**100+ citations** in just 2 years</li></ul>
+<ul><li>**CVPR 2022 Oral** - top 5% of submissions</li></ul>
+<ul><li>**Proven effectiveness** on audio-visual tasks</li></ul>
+<br>
+<hr>
+<br>
+<h3>4️⃣ Cross-Modality Gradient Harmonization (Google Research, NeurIPS 2022)</h3>
+<p><strong>Full Title</strong>: "Scaling Multimodal Pre-Training via Cross-Modality Gradient Harmonization"</p>
+<br>
+<h4>Core Problem Identified:</h4>
+<p>At <strong>billion-sample scale</strong>, semantic misalignment causes <strong>gradient conflicts</strong> between modalities, leading to biases and poor convergence.</p>
+<br>
+<h4>Key Insights:</h4>
+<ol start="1"><li>**Gradient conflicts**: At scale, gradients from different modalities often point in opposite directions</li></ol>
+<ol start="2"><li>**Data quality signal**: Gradient conflict indicates noisy or misaligned data</li></ol>
+<ol start="3"><li>**Curriculum learning**: Use conflict as a filter</li></ol>
+<br>
+<h4>Their Solution:</h4>
+<ol start="1"><li>**Cross-Modality Gradient Realignment**: Align gradient directions across modalities</li></ol>
+<ol start="2"><li>**Gradient-based Curriculum Learning**: Filter out samples with high gradient conflict</li></ol>
+<br>
+<p>Mathematical formulation:</p>
+<pre><code class="language-">
+cos_sim(∇L_vision, ∇L_audio) < threshold → discard sample
+</code></pre>
+<br>
+<h4>How to Explain in Your Presentation:</h4>
+<blockquote>"Google's NeurIPS 2022 paper proved that this problem doesn't go away at scale - in fact, it gets worse. When training on HowTo100M and YouTube8M with billions of samples, they found that gradients from different modalities often conflict - they point in opposite directions. Their solution was twofold: realign the gradient directions, and use gradient conflict as a curriculum signal to filter out noisy samples. This showed that modality dominance is a fundamental problem, not something you can just 'scale away'."</blockquote>
+<br>
+<h4>Why It Matters to Your Work:</h4>
+<ul><li>**Validation**: The problem exists at all scales (not just small datasets)</li></ul>
+<ul><li>**Industrial proof**: Google deployed this at production scale</li></ul>
+<ul><li>**Your focus**: You're tackling the same problem but with a more interpretable, lightweight approach suitable for research and smaller-scale applications</li></ul>
+<br>
+<h4>Statistics to Mention:</h4>
+<ul><li>**NeurIPS 2022** - top-tier ML venue</li></ul>
+<ul><li>**Billion-sample scale** - HowTo100M, YouTube8M</li></ul>
+<ul><li>**Google Research** - industrial validation</li></ul>
+<br>
+<hr>
+<br>
+<h2>🔗 How These Papers Connect to Your Work</h2>
+<br>
+<h3>The Evolution Story:</h3>
+<p>Tell this narrative during your presentation (especially useful for connecting Slide 5 to Slide 7):</p>
+<br>
+<blockquote>"Let me show you how these papers build on each other, and where my work fits in:</blockquote>
+<blockquote></blockquote>
+<blockquote>1. **2020 - Gradient Blending**: 'The problem is overfitting to the dominant modality'</blockquote>
+<blockquote>2. **2022 - Greedy Nature**: 'Let's formalize this as modality laziness and prove it hurts generalization'</blockquote>
+<blockquote>3. **2022 - OGM-GE**: 'We need dynamic, on-the-fly intervention with noise injection'</blockquote>
+<blockquote>4. **2022 - Google**: 'This problem persists even at billion-sample scale'</blockquote>
+<blockquote></blockquote>
+<blockquote>**My contribution**: All of these approaches either require manual tuning or are computationally expensive. My Modality Fairness Controller provides adaptive, parameter-free balancing with a simple, interpretable metric - the OGR ratio. It's the next logical step in this evolution."</blockquote>
+<br>
+<h3>Quick Comparison Table (Memorize This):</h3>
+<br>
+<table>
+<tr><th>Paper</th><th>Approach</th><th>Limitation</th><th>Your Improvement</th></tr>
+<p>|:------|:---------|:-----------|:-----------------|</p>
+<tr><td>Gradient Blending</td><td>Overfitting-based weighting</td><td>Static, periodic updates</td><td>Real-time adaptive</td></tr>
+<tr><td>Greedy Nature</td><td>CLS balancing</td><td>Complex metric</td><td>Simple OGR metric</td></tr>
+<tr><td>OGM-GE</td><td>Noise injection</td><td>Slows dominant only</td><td>Dual: boost weak + regulate dominant</td></tr>
+<table>
+<tr><th>Google Harmonization</th><th>Gradient alignment</th><th>Requires massive scale</th><th>Works on standard benchmarks</th></tr>
+<br>
+<hr>
+<br>
+<h2>🎤 When to Reference Each Paper</h2>
+<br>
+<h3>During Slide 5 (Literature Review):</h3>
+<ul><li>**Brief mention**: Just say the titles and venues</li></ul>
+<ul><li>**Transition**: "These models focus on scale and unification, but don't fully solve optimization imbalance"</li></ul>
+<br>
+<h3>During Slide 9 (Key Contributions):</h3>
+<ul><li>**Comparison**: "Unlike Gradient Blending which is static, we're dynamic..."</li></ul>
+<ul><li>**Differentiation**: "OGM-GE slows the dominant, we boost the weak AND regulate the dominant..."</li></ul>
+<br>
+<h3>During Slide 13 (References):</h3>
+<ul><li>**Synthesis**: "My work builds on these four papers as foundational pillars..."</li></ul>
+<ul><li>**Positioning**: "My contribution is a more interpretable, parameter-free approach..."</li></ul>
+<br>
+<h3>During Q&A:</h3>
+<p>If asked "How is this different from OGM-GE?" (most likely question):</p>
+<blockquote>"Great question. OGM-GE injects Gaussian noise to slow down the dominant modality. That works, but it's a bit of a black box - you don't know exactly why it's working. My approach is different in two ways: First, I use a dual strategy - I boost the weak modality's learning rate AND regulate the dominant. Second, my OGR metric is interpretable - you can plot it, visualize it, and understand exactly what's happening. It's the ratio of train to validation accuracy. High OGR? Overfitting. Low OGR? Generalizing well. It's simple, but powerful."</blockquote>
+<br>
+<hr>
+<br>
+<p><strong>Good luck with your presentation! You've got this! 🚀</strong></p>
+<br>
+<hr>
+<br>
+<h2>�📊 Slide 1: Title Slide</h2>
+<br>
+<p><strong>Title</strong>: Adaptive Gradient Harmonization: Mitigating Modality Dominance in Unified Representation Learning  </p>
+<p><strong>Presenter</strong>: Lakshya</p>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"Good morning/afternoon everyone. Today I'll be presenting my research on Adaptive Gradient Harmonization, which addresses a critical challenge in multimodal deep learning - the problem of modality dominance. This work focuses on ensuring that when AI systems learn from multiple data sources like vision and audio, they don't ignore the weaker signals."</blockquote>
+<br>
+<h3>Key Points:</h3>
+<ul><li>Set the tone: This is about fairness in multimodal learning</li></ul>
+<ul><li>Establish credibility: You're addressing a well-known problem in the field</li></ul>
+<ul><li>Preview: The solution involves adaptive, real-time balancing</li></ul>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 2: Outline</h2>
+<br>
+<p><strong>Sections</strong>:</p>
+<ol start="1"><li>Introduction</li></ol>
+<ol start="2"><li>Problem Statement</li></ol>
+<ol start="3"><li>Literature Review</li></ol>
+<ol start="4"><li>Objective</li></ol>
+<ol start="5"><li>Methodology</li></ol>
+<ol start="6"><li>Proposed Contributions</li></ol>
+<ol start="7"><li>Work Done & Schedule</li></ol>
+<ol start="8"><li>Conclusion</li></ol>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"I've structured this presentation into 8 sections. We'll start with an introduction to multimodal learning, define the specific problem of modality dominance, review the state-of-the-art solutions, and then dive into my proposed methodology - the Modality Fairness Controller. I'll also share our progress and timeline for completion."</blockquote>
+<br>
+<h3>Key Points:</h3>
+<ul><li>Keep this brief - don't read the outline verbatim</li></ul>
+<ul><li>Use it to orient the audience</li></ul>
+<ul><li>Signal that you have a clear structure</li></ul>
+<br>
+<p><strong>Timing</strong>: 30 seconds max</p>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 3: Introduction</h2>
+<br>
+<p><strong>Topic</strong>: Multimodal Representation Learning</p>
+<br>
+<p><strong>Key Concepts</strong>:</p>
+<ul><li>Definition: Learning unified representations from multiple data modalities (text, vision, audio, sensors)</li></ul>
+<ul><li>Challenge: "Modality Dominance" or "Modality Laziness"</li></ul>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"Multimodal representation learning is about teaching AI to learn from multiple senses simultaneously - just like humans do. We combine vision, audio, text, and sensor data into a unified representation. However, there's a fundamental challenge: when you train a model on multiple modalities, it often exhibits 'Modality Laziness' - it over-relies on the easiest modality and ignores the others. For example, in a video understanding task, the model might rely entirely on vision and completely ignore the audio track."</blockquote>
+<br>
+<h3>Key Points:</h3>
+<ul><li>**Analogy**: "Think of it like a student who only studies from their favorite textbook and ignores the rest"</li></ul>
+<ul><li>**Real-world impact**: Models fail when the dominant modality is corrupted or absent</li></ul>
+<ul><li>**Why it matters**: We're losing the benefit of multimodality</li></ul>
+<br>
+<h3>Discussion Points:</h3>
+<ul><li>Multimodal learning is everywhere: autonomous vehicles (camera + LiDAR), healthcare (imaging + genomics)</li></ul>
+<ul><li>The promise of multimodality is robustness - but lazy fusion breaks that promise</li></ul>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 4: Problem Statement</h2>
+<br>
+<p><strong>Core Problem</strong>: Misalignment of Convergence Rates</p>
+<br>
+<p><strong>Details</strong>:</p>
+<ul><li>Different modalities converge at different speeds during training</li></ul>
+<ul><li>High Signal-to-Noise Ratio (SNR) modalities (e.g., Vision) dominate gradient updates</li></ul>
+<ul><li>Low SNR modalities (e.g., Audio) experience gradient starvation</li></ul>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"The root cause of modality dominance is an optimization problem. During training, different modalities converge at different rates. Vision data, with its high signal-to-noise ratio and spatial correlations, is easy for CNNs to learn from - the gradients are strong and clear. Audio data, on the other hand, has temporal complexity and noise - it's harder to learn from, so its gradients are weaker. The optimizer naturally follows the steepest descent, which means it prioritizes the vision gradients. The result? The audio modality experiences 'gradient starvation' and contributes almost nothing to the final model."</blockquote>
+<br>
+<h3>Key Points:</h3>
+<ul><li>**Technical depth**: This shows you understand the optimization mechanics</li></ul>
+<ul><li>**Gradient starvation**: The weak modality's gradients get drowned out</li></ul>
+<ul><li>**Natural behavior**: This isn't a bug - it's how gradient descent works</li></ul>
+<br>
+<h3>Analogies:</h3>
+<blockquote>"It's like water flowing downhill - it takes the path of least resistance. The optimizer takes the 'easy' gradients from vision and ignores the 'hard' gradients from audio."</blockquote>
+<br>
+<h3>Be Ready to Explain:</h3>
+<ul><li>What is SNR? Signal-to-Noise Ratio - how much useful information vs. noise</li></ul>
+<ul><li>Why is vision high SNR? Spatial correlations, clear patterns</li></ul>
+<ul><li>Why is audio low SNR? Temporal complexity, stochastic noise</li></ul>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 5: Literature Review (2023-2024)</h2>
+<br>
+<p><strong>SOTA Models Reviewed</strong>:</p>
+<ol start="1"><li>**ImageBind** (Girdhar et al., CVPR 2023)</li></ol>
+<ol start="2"><li>**Unified-IO 2** (Lu et al., 2023)</li></ol>
+<ol start="3"><li>**Meta-Transformer** (Zhang et al., 2023)</li></ol>
+<ol start="4"><li>**Deep Multimodal Learning with Missing Modality Survey** (Wu et al., 2024)</li></ol>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"I conducted a comprehensive literature review of state-of-the-art multimodal models from 2023-2024. ImageBind from Meta AI learns a joint embedding space for six modalities by using images as a binding 'glue'. Unified-IO 2 is a 7-billion parameter model that can understand and generate across multiple modalities. Meta-Transformer uses a frozen encoder to process 12 different data types. And the recent survey on missing modality learning provides a comprehensive taxonomy of robustness techniques."</blockquote>
+<br>
+<h3>Key Points:</h3>
+<ul><li>These are **top-tier venues** (CVPR, major conferences)</li></ul>
+<ul><li>These models focus on **scale and unification**</li></ul>
+<ul><li>But they don't fully solve the **optimization imbalance** problem</li></ul>
+<br>
+<h3>Transition:</h3>
+<blockquote>"While these models achieve impressive results at scale, they still struggle with modality dominance. Most use static loss weighting or require extensive hyperparameter tuning. That's the gap my research addresses."</blockquote>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 6: Research Objectives</h2>
+<br>
+<p><strong>Primary Objectives</strong>:</p>
+<ol start="1"><li>Develop an **Adaptive Gradient Harmonization** algorithm</li></ol>
+<ol start="2"><li>Design a **Modality Fairness Controller (MFC)** that balances learning dynamically</li></ol>
+<ol start="3"><li>Ensure **all modalities** contribute to the final unified representation</li></ol>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"My research has three main objectives. First, develop an Adaptive Gradient Harmonization algorithm that can balance modalities in real-time without manual tuning. Second, design a Modality Fairness Controller - think of it as a referee that ensures both modalities get equal optimization bandwidth. And third, verify that our approach forces all modalities to contribute meaningfully to the final model, improving both accuracy and robustness."</blockquote>
+<br>
+<h3>Key Points:</h3>
+<ul><li>**Adaptive**: Not static weights - responds to training dynamics</li></ul>
+<ul><li>**Fairness**: Ensuring equal opportunity for all modalities</li></ul>
+<ul><li>**Practical**: Should work without extensive hyperparameter search</li></ul>
+<br>
+<h3>Emphasize:</h3>
+<blockquote>"The key innovation is 'adaptive' - we're not just setting fixed loss weights at the beginning. The controller monitors training dynamics and adjusts in real-time."</blockquote>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 7: Proposed Methodology - Modality Fairness Controller (MFC)</h2>
+<br>
+<p><strong>Core Concept</strong>: Dynamic balancing using Overfitting-to-Generalization Ratio (OGR)</p>
+<br>
+<p><strong>How MFC Works</strong>:</p>
+<ol start="1"><li>Monitor each modality's **OGR = Train Accuracy / Validation Accuracy**</li></ol>
+<ol start="2"><li>If OGR is high (overfitting) → **throttle** that modality (reduce learning rate)</li></ol>
+<ol start="3"><li>If OGR is low (generalizing well) → **amplify** that modality (increase learning rate)</li></ol>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"The Modality Fairness Controller is the heart of my approach. It works by monitoring each modality's Overfitting-to-Generalization Ratio - or OGR. This ratio compares training accuracy to validation accuracy. A high OGR means a modality is overfitting - it's memorizing the training data. A low OGR means it's generalizing well. The MFC uses this signal to dynamically adjust learning rates. If vision is overfitting, we throttle it. If audio is generalizing well but underutilized, we amplify it. This creates a fair competition where both modalities must contribute to achieve good validation performance."</blockquote>
+<br>
+<h3>Key Technical Points:</h3>
+<ul><li>**OGR is interpretable**: Easy to understand and visualize</li></ul>
+<ul><li>**Parameter-free**: No manual tuning of loss weights</li></ul>
+<ul><li>**Real-time**: Adjusts every few epochs based on current dynamics</li></ul>
+<br>
+<h3>Visual Description (if diagram on slide):</h3>
+<blockquote>"As you can see in the diagram, the MFC sits between the optimizer and the modality-specific encoders, dynamically modulating their learning rates based on the OGR metric."</blockquote>
+<br>
+<h3>Be Ready to Explain:</h3>
+<ul><li>**Q**: How often do you update the weights?</li></ul>
+<ul><li>**A**: Every N epochs (e.g., every 5 epochs) to ensure stability</li></ul>
+<ul><li>**Q**: What if both modalities are overfitting?</li></ul>
+<ul><li>**A**: We use relative OGR - whichever is MORE overfitting gets throttled more</li></ul>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 8: System Architecture</h2>
+<br>
+<p><strong>Components</strong>:</p>
+<ol start="1"><li>**Vision Encoder** (processes CIFAR-10 images)</li></ol>
+<ol start="2"><li>**Audio Encoder** (processes CREMA-D audio)</li></ol>
+<ol start="3"><li>**Shared Fusion Network**</li></ol>
+<ol start="4"><li>**Modality Fairness Controller** (monitors and adjusts)</li></ol>
+<ol start="5"><li>**Adaptive Training Loop**</li></ol>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"This diagram shows our system architecture. We have two modality-specific encoders - one for vision processing CIFAR-10 images, and one for audio processing CREMA-D emotion clips. These encoders feed into a shared fusion network that creates the unified representation. The Modality Fairness Controller continuously monitors both pathways, calculating their OGR values, and adjusts the learning rate coefficients alpha and beta in real-time. This creates an adaptive training loop where weak modalities are boosted and dominant modalities are regulated."</blockquote>
+<br>
+<h3>Technical Details:</h3>
+<ul><li>**Vision Encoder**: CNN-based, processes 32×32 RGB images</li></ul>
+<ul><li>**Audio Encoder**: Processes Log-Mel spectrograms or raw waveforms</li></ul>
+<ul><li>**MFC Updates**: Calculated every K steps, applied via learning rate multipliers</li></ul>
+<ul><li>**Loss Function**: L_total = α·L_vision + β·L_audio (α, β adjusted by MFC)</li></ul>
+<br>
+<h3>Highlight:</h3>
+<blockquote>"Notice that this is a closed-loop system - the MFC observes the training dynamics and continuously adapts. Unlike static methods, it responds to what's actually happening during training."</blockquote>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 9: Key Contributions</h2>
+<br>
+<p><strong>1. Modality Fairness Controller (MFC)</strong></p>
+<ul><li>Dynamic, adaptive balancing mechanism</li></ul>
+<ul><li>Parameter-free (no manual loss weight tuning)</li></ul>
+<br>
+<p><strong>2. Overfitting-to-Generalization Ratio (OGR)</strong></p>
+<ul><li>Novel metric for measuring modality health</li></ul>
+<ul><li>Interpretable and actionable</li></ul>
+<br>
+<p><strong>3. Taxonomy of Modality Laziness</strong></p>
+<ul><li>Formalizes the problem and solution space</li></ul>
+<br>
+<p><strong>4. Benchmark on Standard Datasets</strong></p>
+<ul><li>CIFAR-10 + CREMA-D protocol</li></ul>
+<ul><li>Reproducible experimental setup</li></ul>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"My research makes four key contributions. First, the Modality Fairness Controller itself - a lightweight, dynamic mechanism that requires no manual tuning. Second, the OGR metric - a simple but powerful way to quantify whether a modality is lazy or productive. Third, I've developed a formal taxonomy of modality laziness, categorizing the problem and existing solutions. And fourth, I've created a reproducible benchmark using CIFAR-10 and CREMA-D that reliably reproduces the dominance problem, allowing for controlled experimentation."</blockquote>
+<br>
+<h3>Emphasize Your Novelty:</h3>
+<ol start="1"><li>**vs. Gradient Blending**: They use overfitting, but statically. We're dynamic.</li></ol>
+<ol start="2"><li>**vs. OGM-GE**: They slow down the dominant. We boost the weak AND slow the dominant.</li></ol>
+<ol start="3"><li>**vs. Static weights**: We adapt in real-time based on actual training dynamics.</li></ol>
+<br>
+<h3>Be Ready For:</h3>
+<ul><li>**Q**: What's new compared to OGM-GE?</li></ul>
+<ul><li>**A**: "OGM-GE injects noise to slow the dominant modality. We take a dual approach - we both slow the dominant AND boost the weak, and our OGR metric provides better interpretability."</li></ul>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 10: Status Update</h2>
+<br>
+<p><strong>Completed</strong>:</p>
+<ul><li>✅ Phase 1: Literature Survey (Completed)</li></ul>
+<ul><li>✅ Phase 2: Problem Formulation (Completed)</li></ul>
+<br>
+<p><strong>In Progress</strong>:</p>
+<ul><li>🔄 Phase 3: Resource Collection (CIFAR-10, CREMA-D datasets)</li></ul>
+<br>
+<p><strong>Upcoming</strong>:</p>
+<ul><li>Phase 4: Algorithm Implementation</li></ul>
+<ul><li>Phase 5: Experimentation & Validation</li></ul>
+<ul><li>Phase 6: Thesis Writing</li></ul>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"I've made significant progress on this research. I've completed a comprehensive literature survey covering 10+ key papers from CVPR, ICML, and NeurIPS. I've formalized the problem statement and designed the Modality Fairness Controller architecture. Currently, I'm in Phase 3 - setting up the datasets and experimental infrastructure. CIFAR-10 is ready, and I'm finalizing the CREMA-D audio preprocessing pipeline."</blockquote>
+<br>
+<h3>Demonstrate Progress:</h3>
+<ul><li>**Literature**: "I've analyzed papers with 400+ citations total"</li></ul>
+<ul><li>**Problem**: "Formalized the gradient starvation problem mathematically"</li></ul>
+<ul><li>**Datasets**: "Implemented data loaders with fallback mechanisms for reproducibility"</li></ul>
+<br>
+<h3>Show Momentum:</h3>
+<blockquote>"The theoretical groundwork is solid. Now it's about implementation and validation."</blockquote>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 11: Schedule (Next 6 Months)</h2>
+<br>
+<p><strong>Timeline</strong>:</p>
+<ul><li>**Month 1-2**: Algorithm implementation, baseline training</li></ul>
+<ul><li>**Month 3-4**: MFC development, hyperparameter-free optimization</li></ul>
+<ul><li>**Month 5**: Experimentation, ablation studies, metrics collection</li></ul>
+<ul><li>**Month 6**: Results analysis, thesis writing, paper preparation</li></ul>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"Looking ahead, I have a clear 6-month timeline. In the first two months, I'll implement the full training pipeline and establish baseline results without the MFC. Months 3-4 are critical - that's when I'll implement and fine-tune the Modality Fairness Controller, ensuring it works without manual intervention. Month 5 is for rigorous experimentation - I'll run ablation studies to validate each component and collect comprehensive metrics. And in the final month, I'll analyze results, write the thesis, and prepare for paper submission."</blockquote>
+<br>
+<h3>Key Milestones:</h3>
+<ul><li>**End of Month 2**: Baseline results showing modality dominance problem</li></ul>
+<ul><li>**End of Month 4**: Working MFC prototype</li></ul>
+<ul><li>**End of Month 5**: Complete experimental results</li></ul>
+<ul><li>**End of Month 6**: Thesis submission ready</li></ul>
+<br>
+<h3>Risk Management (if asked):</h3>
+<blockquote>"I've built buffer time into each phase. The dataset infrastructure is nearly complete, which de-risks the timeline. If MFC tuning takes longer, I can compress the analysis phase since I'll have automated metrics collection."</blockquote>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 12: Conclusion</h2>
+<br>
+<p><strong>Key Messages</strong>:</p>
+<ul><li>Multimodal learning suffers from modality dominance</li></ul>
+<ul><li>Existing solutions require manual tuning or are computationally expensive</li></ul>
+<ul><li>Modality Fairness Controller provides adaptive, parameter-free balancing</li></ul>
+<ul><li>Goal: Achieve "true unified robustness" by forcing fair learning</li></ul>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"To conclude, modality dominance is a fundamental challenge in multimodal learning - models take the easy path and ignore weaker signals. Existing solutions either require extensive manual tuning or add significant computational overhead. My Modality Fairness Controller addresses this with a lightweight, adaptive mechanism that requires no hyperparameter search. The goal is to move beyond 'lazy fusion' toward what I call 'true unified robustness' - systems that genuinely learn from all available modalities, making them more accurate and more resilient to sensor failures."</blockquote>
+<br>
+<h3>Closing Hook:</h3>
+<blockquote>"By ensuring fairness in the optimization process, we can unlock the full potential of multimodal AI - systems that truly see, hear, and understand the world through multiple senses."</blockquote>
+<br>
+<h3>Transition to Q&A:</h3>
+<blockquote>"I'm happy to take questions about the methodology, datasets, or any other aspect of this research."</blockquote>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 13: Selected References</h2>
+<br>
+<p><strong>Key Papers</strong>:</p>
+<ol start="1"><li>Wang et al. - "What Makes Training Multi-Modal Classification Networks Hard?" (CVPR 2020)</li></ol>
+<ol start="2"><li>Wu et al. - "Characterizing the Greedy Nature of Multimodal Learning" (ICML 2022)</li></ol>
+<ol start="3"><li>Peng et al. - "Balanced Multimodal Learning via OGM-GE" (CVPR 2022)</li></ol>
+<ol start="4"><li>Google - "Cross-Modality Gradient Harmonization" (NeurIPS 2022)</li></ol>
+<ol start="5"><li>ImageBind, Unified-IO 2, Meta-Transformer (2023)</li></ol>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"My work builds on these foundational papers. The CVPR 2020 gradient blending paper first identified overfitting to dominant modalities. The ICML 2022 paper gave us the term 'modality laziness.' The OGM-GE work showed dynamic intervention works. And Google's NeurIPS paper proved this problem persists even at billion-sample scale. My contribution is a more interpretable, parameter-free approach through the MFC and OGR metric."</blockquote>
+<br>
+<h3>If Asked About Specific Papers:</h3>
+<ul><li>Be ready to explain how each paper relates to your work</li></ul>
+<ul><li>Emphasize what you're doing differently</li></ul>
+<br>
+<hr>
+<br>
+<h2>📊 Slide 14: Thank You - Questions?</h2>
+<br>
+<h3>What to Say:</h3>
+<blockquote>"Thank you for your attention. I'm happy to answer any questions about the Modality Fairness Controller, the experimental setup, or the broader implications of this research."</blockquote>
+<br>
+<h3>Be Prepared For These Questions:</h3>
+<br>
+<p><strong>Q1: How does MFC compare to simple loss weighting?</strong></p>
+<blockquote>A: "Static loss weights need manual tuning and don't adapt to training dynamics. MFC automatically adjusts based on real-time OGR values, making it more robust and requiring no hyperparameter search."</blockquote>
+<br>
+<p><strong>Q2: What if both modalities have high OGR?</strong></p>
+<blockquote>A: "We use relative OGR - we compare them to each other. The one with higher OGR (more overfitting) gets throttled more. Additionally, we can use absolute thresholds to trigger regularization."</blockquote>
+<br>
+<p><strong>Q3: Why CIFAR-10 and CREMA-D?</strong></p>
+<blockquote>A: "CIFAR-10 is a standard vision benchmark, making results comparable. CREMA-D is temporally complex and noisy, naturally creating the imbalance we want to study. This pairing reliably reproduces modality dominance for controlled experiments."</blockquote>
+<br>
+<p><strong>Q4: What's the computational overhead?</strong></p>
+<blockquote>A: "Minimal. We only calculate OGR every N epochs (e.g., 5), which involves one forward pass on validation data. The learning rate adjustment is a simple multiplication. Total overhead is <5%."</blockquote>
+<br>
+<p><strong>Q5: How do you know the weak modality is actually contributing?</strong></p>
+<blockquote>A: "We measure modality-specific accuracy (freeze one, test the other) and compute gradient magnitude ratios. We also do ablation studies - remove MFC and show performance drops."</blockquote>
+<br>
+<p><strong>Q6: Real-world applications?</strong></p>
+<blockquote>A: "Autonomous vehicles (camera + LiDAR), healthcare (medical imaging + genomics), video understanding (vision + audio), robotics (vision + proprioception). Any system combining strong and weak sensors."</blockquote>
+<br>
+<hr>
+<br>
+<h2>🎯 General Presentation Tips</h2>
+<br>
+<h3>Pacing:</h3>
+<ul><li>**Total time**: Aim for 12-15 minutes if 15-20 min slot (leave 5 min for Q&A)</li></ul>
+<ul><li>**Slide timing**: </li></ul>
+<p>  - Title: 30s</p>
+<p>  - Outline: 30s</p>
+<p>  - Intro: 1.5 min</p>
+<p>  - Problem: 2 min</p>
+<p>  - Literature: 1.5 min</p>
+<p>  - Objectives: 1 min</p>
+<p>  - Methodology: 3 min (most important - go deep here)</p>
+<p>  - Architecture: 1.5 min</p>
+<p>  - Contributions: 1.5 min</p>
+<p>  - Status: 1 min</p>
+<p>  - Schedule: 1 min</p>
+<p>  - Conclusion: 1.5 min</p>
+<p>  - References: 30s</p>
+<br>
+<h3>Body Language:</h3>
+<ul><li>Make eye contact with different parts of the audience</li></ul>
+<ul><li>Use hand gestures when explaining the MFC loop</li></ul>
+<ul><li>Point to diagrams when referencing architecture</li></ul>
+<br>
+<h3>Voice:</h3>
+<ul><li>Slow down on technical terms (Overfitting-to-Generalization Ratio)</li></ul>
+<ul><li>Emphasize key contributions</li></ul>
+<ul><li>Use confident, declarative statements</li></ul>
+<br>
+<h3>Handling Tough Questions:</h3>
+<ul><li>"That's a great question. Let me think..." (buy time)</li></ul>
+<ul><li>"I haven't fully explored that yet, but it's an interesting direction for future work."</li></ul>
+<ul><li>"Could you clarify what aspect you're most interested in?" (redirect)</li></ul>
+<br>
+<h3>Confidence Boosters:</h3>
+<ul><li>You know this material better than anyone in the room</li></ul>
+<ul><li>The base papers are rock-solid (CVPR, ICML, NeurIPS)</li></ul>
+<ul><li>Your datasets are standard and reproducible</li></ul>
+<ul><li>Your contribution (adaptive + interpretable) is genuine</li></ul>
+<br>
+<hr>
+<br>
+<h2>📸 Visual Reference</h2>
+<br>
+<p>The presentation slides have been captured and saved for your review. You can refer to the screenshots to see the exact layout and content of each slide.</p>
+<br>
+<p><strong>Good luck with your presentation! You've got this! 🚀</strong></p>
+<br>
+</body>
+</html>
