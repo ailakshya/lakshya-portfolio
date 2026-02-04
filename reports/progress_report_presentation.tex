@@ -217,6 +217,50 @@
 \end{table}}
 \end{frame}
 
+% Part 3: Datasets
+\begin{frame}{}
+    \frametitle<presentation>{Literature Review - Part 3: Datasets Used}
+    
+    \begin{columns}[T]
+        % Column 1: CIFAR-10
+        \begin{column}{0.48\textwidth}
+            \begin{block}{CIFAR-10 (Vision - Dominant)}
+                \small
+                \begin{itemize}
+                    \item 60,000 color images (32×32 pixels)
+                    \item 10 classes: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck
+                    \item \textbf{Role}: Dominant Modality
+                    \item High SNR → easy for CNNs
+                    \item Models reach \textgreater90\% accuracy quickly
+                    \item \textcolor{red}{\textbf{Problem}}: Causes model to ignore audio
+                \end{itemize}
+            \end{block}
+        \end{column}
+        
+        % Column 2: CREMA-D
+        \begin{column}{0.48\textwidth}
+            \begin{block}{CREMA-D (Audio - Weak)}
+                \small
+                \begin{itemize}
+                    \item 7,442 emotion audio clips
+                    \item 91 actors (diverse demographics)
+                    \item 6 emotions: Anger, Disgust, Fear, Happiness, Neutral, Sadness
+                    \item \textbf{Role}: Weak/Lazy Modality
+                    \item Temporally complex, noisy
+                    \item Slower to learn than visual patterns
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.3cm}
+    
+    \begin{alertblock}{The "High-Imbalance" Protocol}
+        \small
+        \textbf{Challenge}: By pairing CIFAR-10 (easy) + CREMA-D (hard), we create a controlled experiment that reliably reproduces \textbf{Modality Laziness}. The optimizer naturally gravitates toward CIFAR-10 gradients, forcing our MFC to actively balance learning.
+    \end{alertblock}
+\end{frame}
+
 % --- 4. Objectives ---
 \section{Objective}
 \begin{frame}{Objective}
