@@ -1,0 +1,20 @@
+{
+  "name": "lakshya-portfolio",
+  "compatibility_date": "2025-01-23",
+  "assets": {
+    "directory": "./public"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "routes": [
+    {
+      "pattern": "ailakshya.in",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.ailakshya.in",
+      "custom_domain": true
+    }
+  ]
+}

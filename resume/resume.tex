@@ -1,0 +1,154 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[left=0.75in,right=0.75in,top=0.6in,bottom=0.6in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{pdfpages}
+
+% Color definitions
+\definecolor{primary}{RGB}{0, 70, 140}
+\definecolor{darktext}{RGB}{20, 20, 20}
+
+% Formatting
+\titleformat{\section}{\large\bfseries\color{primary}\uppercase}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{12pt}{8pt}
+
+\newcommand{\entry}[4]{
+  \noindent\textbf{#1} \hfill #2 \\
+  \textit{#3} \hfill \textit{#4}
+}
+
+\newcommand{\proj}[2]{
+  \noindent\textbf{#1} \hfill \textit{#2}
+}
+
+\begin{document}
+
+\pagestyle{empty}
+
+% --- Header ---
+\begin{center}
+    {\Huge\textbf{Lakshya}} \\ \vspace{5pt}
+    \small
+    \href{mailto:ailakshya@university.edu}{ailakshya@gmail.com} \ $|$ \ 
+    \href{https://github.com/ailakshya}{github.com/ailakshya} \ $|$ \ 
+    \href{https://linkedin.com/in/ailakshya}{linkedin.com/in/ailakshya} \\ \vspace{2pt}
+    \href{https://ailakshya.in}{ailakshya.in}
+\end{center}
+
+\vspace{5pt}
+
+% --- Summary ---
+\section{Summary}
+M.Tech in AI \& ML  specializing in \textbf{Multimodal Representation Learning}. Lead researcher on ``Adaptive Gradient Harmonization,'' developing novel algorithms to solve modality dominance in AI. Strong engineering background in \textbf{Go (Golang)} and \textbf{System Architecture}, with practical experience building high-performance CMS platforms and solving complex concurrency bugs in inventory management systems. Passionate about bridging the gap between theoretical AI research and robust production engineering.
+
+% --- Education ---
+\section{Education}
+
+\entry{M.Tech in AI \& ML}{Aug 2025 -- Present}
+{Manipal Institute of Technology (Manipal University Jaipur)}{Exp. Jun 2027}
+\begin{itemize}[noitemsep,topsep=0pt,leftmargin=15pt]
+    \item \textbf{Focus:} Data Science, Artificial Intelligence, Multimodal Deep Learning.
+    \item \textbf{Research:} Gradient Harmonization \& Optimization Dynamics under Prof. (Dr.) Sandeep Joshi.
+\end{itemize}
+
+\vspace{5pt}
+
+\entry{B.Tech in Computer Science \& Engineering}{2021 -- 2025}
+{SRMIST, Kattankulathur, Chennai}{}
+\begin{itemize}[noitemsep,topsep=0pt,leftmargin=15pt]
+    \item \textbf{Key Coursework:} Artificial Intelligence, Computer Networking, Data Structures \& Algorithms.
+\end{itemize}
+
+\vspace{5pt}
+
+\entry{Intermediate (Class XII)}{2019}
+{P.S.S.V.M.I.C. Jahangirabad, Bulandshahr (UP Board)}{}
+\begin{itemize}[noitemsep,topsep=0pt,leftmargin=15pt]
+    \item \textbf{Stream:} Science (PCM) \ $|$ \ \textbf{Percentage:} 60\% (First Division)
+\end{itemize}
+
+\vspace{5pt}
+
+\entry{High School (Class X)}{2017}
+{P.S.S.V.M.I.C. Jahangirabad, Bulandshahr (UP Board)}{}
+\begin{itemize}[noitemsep,topsep=0pt,leftmargin=15pt]
+    \item \textbf{Percentage:} 72.8\%
+    \item \textbf{Subjects:} Science, Mathematics, Social Science, English, Hindi, Drawing.
+\end{itemize}
+
+% --- Work Experience ---
+\section{Work Experience}
+
+\entry{Internship (Check Letter)}{Dur.}
+{Company Name}{Loc.}
+\begin{itemize}[noitemsep,topsep=0pt,leftmargin=15pt]
+    \item Please update this section with details from the attached Internship Letter.
+\end{itemize}
+
+\vspace{5pt}
+
+% --- Research ---
+\section{Research \& Publications}
+
+\noindent\textbf{Adaptive Gradient Harmonization: Mitigating Modality Dominance} \hfill \textit{Lead Author (Under Review)}
+\begin{itemize}[noitemsep,topsep=2pt,leftmargin=15pt]
+    \item Innovated the \textbf{Modality Fairness Controller (MFC)}, a dynamic optimization algorithm that continuously balances learning rates across varied data modalities (Vision, Audio).
+    \item Introduced the \textbf{Overfitting-to-Generalization Ratio (OGR)} metric to quantify and control generalization gaps in real-time.
+    \item Achieved \textbf{2.3\% accuracy boost} and \textbf{40\% reduction in modality imbalance} on CIFAR-10/CREMA-D benchmarks.
+\end{itemize}
+
+\vspace{5pt}
+
+\noindent\textbf{Reducing Processing Cost in DFU Image Classification} \hfill \textit{Pipeline / In Progress}
+\begin{itemize}[noitemsep,topsep=2pt,leftmargin=15pt]
+    \item Developed a paired reduction strategy using a \textbf{ResNet-50 Teacher} and \textbf{MobileNetV2 Student} via Knowledge Distillation and History-Based Filter Pruning (HBFP).
+    \item Achieved \textbf{3.47x inference speedup on CPU} and \textbf{1.71x on GPU} while maintaining diagnostic accuracy.
+    \item \textit{Tech Stack:} PyTorch, Knowledge Distillation, Model Pruning, FLOPs analysis.
+\end{itemize}
+
+% --- Projects ---
+\section{Technical Projects}
+
+\proj{GoBlog CMS (High-Performance Content Management System)}{}
+\begin{itemize}[noitemsep,topsep=2pt,leftmargin=15pt]
+    \item Developed a scalable, full-stack CMS using \textbf{Go (Golang)} and \textbf{PostgreSQL}.
+    \item Engineered a high-performance architecture capable of handling concurrent content delivery.
+    \item \textit{Tech Stack:} Go, PostgreSQL, Docker, React (Frontend).
+\end{itemize}
+
+\vspace{5pt}
+
+\proj{Cold Storage Management System}{}
+\begin{itemize}[noitemsep,topsep=2pt,leftmargin=15pt]
+    \item Built a robust inventory tracking system for cold storage facilities.
+    \item Identified and patched a critical \textbf{Race Condition/Concurrency Bug} regarding inventory overselling.
+    \item \textit{Tech Stack:} Full Stack Web Development, Database Concurrency Control.
+\end{itemize}
+
+\vspace{5pt}
+
+\proj{Custom AI Infrastructure Engineering}{}
+\begin{itemize}[noitemsep,topsep=2pt,leftmargin=15pt]
+    \item Built custom \textbf{TensorFlow wheels} with CUDA support optimized for next-gen NVIDIA hardware (RTX 5070 Ti).
+    \item \textit{Tech Stack:} CUDA, C++, Python Build Systems, Linux Systems Engineering.
+\end{itemize}
+
+% --- Skills ---
+\section{Skills \& Certifications}
+
+\begin{itemize}[noitemsep,topsep=2pt,leftmargin=15pt]
+    \item \textbf{Languages:} Python, Go (Golang), C, SQL, LaTeX
+    \item \textbf{AI/ML:} PyTorch, TensorFlow, Multimodal Learning, Computer Vision, Knowledge Distillation
+    \item \textbf{Systems:} Docker, Git/GitHub, Linux, PostgreSQL, CUDA
+    \item \textbf{Certifications:} 
+    \begin{itemize}[noitemsep,topsep=0pt]
+        \item Data Science Workshop – EI Systems / Cognizance, IIT Roorkee (Apr 2023)
+        \item Microsoft for Startups – Founder Hub proficiency
+    \end{itemize}
+\end{itemize}
+
+\includepdf[pages=-]{Internship_Letter.pdf}
+\end{document}

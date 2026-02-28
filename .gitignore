@@ -1,3 +1,27 @@
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.out
+*.toc
+*.snm
+*.nav
+*.synctex.gz
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
 .DS_Store
-node_modules/
-.wrangler/
+
+# Keep important PDFs if desired, but usually we ignore build output.
+# However, user seems to keep them in repo. I will comment out *.pdf ignore for now to be safe, 
+# or just ignore the ones I know are artifacts.
+# Actually, users usually want the final pdf in the repo if they are not using CI.
+# I will NOT ignore *.pdf for now to avoid deleting their pdfs from repo tracking.
+
+# Large Datasets
+data/*.tar.gz
