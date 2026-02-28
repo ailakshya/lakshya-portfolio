@@ -54,21 +54,26 @@
 
     <section id="about" class="container">
       <h2 class="section-title">About Me</h2>
-      <div class="card glass">
-        <p>
-          I am an <strong>M.Tech student in AI & ML</strong> at Manipal
-          Institute of Technology, specializing in
-          <strong>Multimodal Representation Learning</strong> and
-          <strong>Optimization Dynamics</strong>. My research focuses on solving
-          fundamental problems like "Modality Laziness" in unified models.
-        </p>
-        <p>
-          Beyond theory, I am a strong <strong>Systems Engineer</strong> with
-          deep expertise in <strong>Go (Golang)</strong>,
-          <strong>PostgreSQL</strong>, and
-          <strong>low-level GPU optimization</strong>. I bridge the gap between
-          cutting-edge AI research and robust, scalable production systems.
-        </p>
+      <div class="about-content grid-2-col">
+        <div class="card glass about-text">
+          <p>
+            I am an <strong>M.Tech student in AI & ML</strong> at Manipal
+            Institute of Technology, specializing in
+            <strong>Multimodal Representation Learning</strong> and
+            <strong>Optimization Dynamics</strong>. My research focuses on solving
+            fundamental problems like "Modality Laziness" in unified models.
+          </p>
+          <p>
+            Beyond theory, I am a strong <strong>Systems Engineer</strong> with
+            deep expertise in <strong>Go (Golang)</strong>,
+            <strong>PostgreSQL</strong>, and
+            <strong>low-level GPU optimization</strong>. I bridge the gap between
+            cutting-edge AI research and robust, scalable production systems.
+          </p>
+        </div>
+        <div class="about-image-wrapper">
+           <img src="images/avatar-placeholder.jpg" alt="Lakshya Avatar" class="profile-img glass-img" onerror="this.src='https://placehold.co/400x400/1e1b4b/a855f7?text=Your+Photo'"/>
+        </div>
       </div>
     </section>
 
@@ -76,54 +81,64 @@
       <h2 class="section-title">Research Highlights</h2>
       <div class="research-grid">
         <div class="card glass research-card">
-          <div class="card-header">
-            <span class="badge">Lead Author (Under Review)</span>
-            <h3>Adaptive Gradient Harmonization</h3>
+          <div class="card-image">
+             <img src="images/agh-placeholder.jpg" alt="Adaptive Gradient Harmonization" class="cover-img" onerror="this.src='https://placehold.co/600x300/172554/3b82f6?text=Research+Visual'"/>
           </div>
-          <p>
-            <strong
-              >Mitigating Modality Dominance in Unified Representation
-              Learning</strong
-            >
-          </p>
-          <ul>
-            <li>
-              Innovated the
-              <strong>Modality Fairness Controller (MFC)</strong> to dynamically
-              balance learning rates across Vision and Audio.
-            </li>
-            <li>
-              Introduced the
-              <strong>Overfitting-to-Generalization Ratio (OGR)</strong> metric.
-            </li>
-            <li>
-              Achieved <strong>2.3% accuracy boost</strong> and
-              <strong>40% reduction</strong> in imbalance on CIFAR-10/CREMA-D
-              benchmarks.
-            </li>
-          </ul>
+          <div class="card-content">
+            <div class="card-header">
+              <span class="badge">Lead Author (Under Review)</span>
+              <h3>Adaptive Gradient Harmonization</h3>
+            </div>
+            <p>
+              <strong
+                >Mitigating Modality Dominance in Unified Representation
+                Learning</strong
+              >
+            </p>
+            <ul>
+              <li>
+                Innovated the
+                <strong>Modality Fairness Controller (MFC)</strong> to dynamically
+                balance learning rates across Vision and Audio.
+              </li>
+              <li>
+                Introduced the
+                <strong>Overfitting-to-Generalization Ratio (OGR)</strong> metric.
+              </li>
+              <li>
+                Achieved <strong>2.3% accuracy boost</strong> and
+                <strong>40% reduction</strong> in imbalance on CIFAR-10/CREMA-D
+                benchmarks.
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div class="card glass research-card">
-          <div class="card-header">
-            <span class="badge">Pipeline / In Progress</span>
-            <h3>DFU Image Classification Cost Reduction</h3>
+          <div class="card-image">
+            <img src="images/dfu-placeholder.jpg" alt="DFU Image Classification" class="cover-img" onerror="this.src='https://placehold.co/600x300/064e3b/10b981?text=Medical+Imaging'"/>
           </div>
-          <p><strong>Knowledge Distillation & Network Pruning</strong></p>
-          <ul>
-            <li>
-              Paired reduction strategy using ResNet-50 Teacher and MobileNetV2
-              Student.
-            </li>
-            <li>
-              Achieved <strong>3.47x inference speedup</strong> on CPU and
-              <strong>1.71x</strong> on GPU.
-            </li>
-            <li>
-              Optimized for edge deployment without sacrificing diagnostic
-              accuracy.
-            </li>
-          </ul>
+          <div class="card-content">
+            <div class="card-header">
+              <span class="badge">Pipeline / In Progress</span>
+              <h3>DFU Image Classification Cost Reduction</h3>
+            </div>
+            <p><strong>Knowledge Distillation & Network Pruning</strong></p>
+            <ul>
+              <li>
+                Paired reduction strategy using ResNet-50 Teacher and MobileNetV2
+                Student.
+              </li>
+              <li>
+                Achieved <strong>3.47x inference speedup</strong> on CPU and
+                <strong>1.71x</strong> on GPU.
+              </li>
+              <li>
+                Optimized for edge deployment without sacrificing diagnostic
+                accuracy.
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
@@ -131,41 +146,56 @@
     <section id="projects" class="container">
       <h2 class="section-title">Technical Projects</h2>
       <div class="project-grid">
-        <div class="card glass project-card">
-          <h3>GoBlog CMS</h3>
-          <p>
-            High-performance Content Management System built with
-            <strong>Go</strong> and <strong>PostgreSQL</strong>. Engineered for
-            concurrent content delivery and scalability.
-          </p>
-          <div class="tech-stack">
-            <span>Go</span><span>PostgreSQL</span><span>Docker</span
-            ><span>React</span>
+        <div class="card glass project-card has-image">
+          <div class="card-image">
+             <img src="images/goblog-placeholder.jpg" alt="GoBlog CMS" class="cover-img" onerror="this.src='https://placehold.co/600x300/3b0764/d946ef?text=GoBlog+CMS'"/>
+          </div>
+          <div class="card-content">
+            <h3>GoBlog CMS</h3>
+            <p>
+              High-performance Content Management System built with
+              <strong>Go</strong> and <strong>PostgreSQL</strong>. Engineered for
+              concurrent content delivery and scalability.
+            </p>
+            <div class="tech-stack">
+              <span>Go</span><span>PostgreSQL</span><span>Docker</span
+              ><span>React</span>
+            </div>
           </div>
         </div>
 
-        <div class="card glass project-card">
-          <h3>Cold Storage Management</h3>
-          <p>
-            Robust inventory tracking system. identified and patched a critical
-            <strong>Race Condition</strong> bug involving inventory overselling
-            during simultaneous gate pass approvals.
-          </p>
-          <div class="tech-stack">
-            <span>Web Dev</span><span>Concurrency Control</span><span>SQL</span>
+        <div class="card glass project-card has-image">
+          <div class="card-image">
+            <img src="images/cold-storage-placeholder.jpg" alt="Cold Storage" class="cover-img" onerror="this.src='https://placehold.co/600x300/0f172a/0ea5e9?text=Cold+Storage'"/>
+          </div>
+          <div class="card-content">
+            <h3>Cold Storage Management</h3>
+            <p>
+              Robust inventory tracking system. identified and patched a critical
+              <strong>Race Condition</strong> bug involving inventory overselling
+              during simultaneous gate pass approvals.
+            </p>
+            <div class="tech-stack">
+              <span>Web Dev</span><span>Concurrency Control</span><span>SQL</span>
+            </div>
           </div>
         </div>
 
-        <div class="card glass project-card">
-          <h3>Custom AI Infrastructure</h3>
-          <p>
-            Built custom <strong>TensorFlow wheels</strong> with CUDA support
-            optimized for next-gen NVIDIA hardware (RTX 5070 Ti / Blackwell
-            Architecture).
-          </p>
-          <div class="tech-stack">
-            <span>CUDA</span><span>C++</span><span>Linux</span
-            ><span>Python Build Systems</span>
+        <div class="card glass project-card has-image">
+          <div class="card-image">
+            <img src="images/ai-infra-placeholder.jpg" alt="AI Infrastructure" class="cover-img" onerror="this.src='https://placehold.co/600x300/14532d/22c55e?text=AI+Infrastructure'"/>
+          </div>
+          <div class="card-content">
+            <h3>Custom AI Infrastructure</h3>
+            <p>
+              Built custom <strong>TensorFlow wheels</strong> with CUDA support
+              optimized for next-gen NVIDIA hardware (RTX 5070 Ti / Blackwell
+              Architecture).
+            </p>
+            <div class="tech-stack">
+              <span>CUDA</span><span>C++</span><span>Linux</span
+              ><span>Python Build Systems</span>
+            </div>
           </div>
         </div>
       </div>
