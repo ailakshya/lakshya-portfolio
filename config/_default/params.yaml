@@ -33,12 +33,12 @@ hugoblox:
   # ────────────────────────────────────────────────────────────────────────────
   theme:
     # Mode: 'light', 'dark', or 'system' (follows OS preference)
-    mode: system
+    mode: dark
     # Theme pack: name from data/themes/ or { light: "x", dark: "y" } for mix-and-match
     pack: "default"
     # Optional: Override theme pack colors
     colors:
-      primary: ""                       # Tailwind palette name or hex (e.g., "indigo" or "#6366f1")
+      primary: "#a855f7"                       # Tailwind palette name or hex (e.g., "indigo" or "#6366f1")
       secondary: ""
       neutral: ""                       # Affects gray utilities (text-gray-*, bg-gray-*)
     # Optional: Mode-specific color overrides
