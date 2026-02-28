@@ -40,7 +40,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          package_json_path: templates/academic-cv/package.json
+          package_json_file: academic-portfolio/package.json
           run_install: false
 
       - name: Setup Go
