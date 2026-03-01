@@ -6,6 +6,7 @@ Remembers which companies/emails have been contacted and tracks status.
 import json
 import os
 from datetime import datetime
+from typing import Optional
 
 TRACKER_FILE = "recruiter_history.json"
 
@@ -61,7 +62,7 @@ def get_record_for_email(email: str) -> list:
     return [r for r in records if r["recruiter_email"].lower() == email.lower()]
 
 
-def was_contacted(company: str, recruiter_email: str = "") -> dict | None:
+def was_contacted(company: str, recruiter_email: str = "") -> Optional[dict]:
     """
     Returns the most recent contact record if this company/email was
     already contacted, else None.
