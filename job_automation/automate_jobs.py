@@ -11,9 +11,7 @@ import openai # For GPT-4
 # 1. Get your OpenAI API key: https://platform.openai.com/api-keys
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY_HERE")
 
-# 2. To get real job postings, get a free API key from Adzuna (https://developer.adzuna.com/) or SerpApi
-ADZUNA_APP_ID = os.environ.get("ADZUNA_APP_ID", "YOUR_APP_ID_HERE")
-ADZUNA_APP_KEY = os.environ.get("ADZUNA_APP_KEY", "YOUR_APP_KEY_HERE")
+# No paid API keys required for scraping! We use LinkedIn HTML & Remotive JSON arrays.
 
 # Define the keywords for the roles you want
 JOB_KEYWORDS = ["Machine Learning Engineer", "Systems Engineer", "AI Researcher Intern", "Multimodal", "PyTorch"]
@@ -35,57 +33,59 @@ openai.api_key = OPENAI_API_KEY
 
 def fetch_real_jobs(keyword, location="remote"):
     """
-    Fetches real job listings using the Adzuna API. 
-    If keys are missing, falls back to a mock list.
+    Scrapes jobs from LinkedIn's public board and the Remotive API globally without API keys.
     """
-    app_id = os.environ.get("ADZUNA_APP_ID", "")
-    app_key = os.environ.get("ADZUNA_APP_KEY", "")
-
-    if not app_id or "YOUR_APP" in app_id:
-        print("⚠️ Adzuna API keys not set. Falling back to mock data for demonstration.")
-        return [
-            {
-                "title": "Machine Learning Systems Engineer",
-                "company": "Anthropic",
-                "url": "https://anthropic.com/careers",
-                "description": "Build high-concurrency data ingestion pipelines to feed our frontier RLHF models. Experience with Go, Python, and PyTorch is required. Strong focus on AI Safety and systems performance."
-            },
-            {
-                "title": "AI Research Intern (Vision Language Models)",
-                "company": "Upstage AI",
-                "url": "https://upstage.ai",
-                "description": "Looking for interns to push the boundary of Multimodal LLMs. Must understand modality imbalance and gradient issues in training large vision networks."
-            },
-            {
-                "title": "Senior Frontend Developer",
-                "company": "RandomTech Inc.",
-                "url": "https://example.com/job",
-                "description": "Looking for 5+ years of React experience to build our web dashboard."
-            }
-        ]
-
-    # Real API Call to Adzuna
-    print(f"🔍 Fetching {keyword} jobs from Adzuna API...")
-    url = f"https://api.adzuna.com/v1/api/jobs/us/search/1"
-    params = {
-        "app_id": app_id,
-        "app_key": app_key,
-        "results_per_page": 10,
-        "what": keyword,
-        "where": location
-    }
-    
-    response = requests.get(url, params=params)
     jobs = []
-    if response.status_code == 200:
-        results = response.json().get("results", [])
-        for r in results:
-            jobs.append({
-                "title": r.get("title"),
-                "company": r.get("company", {}).get("display_name"),
-                "url": r.get("redirect_url"),
-                "description": r.get("description")
-            })
+    
+    # 1. Scrape LinkedIn Public Job Board
+    print(f"🔍 Scraping LinkedIn for {keyword}...")
+    import urllib.parse
+    from bs4 import BeautifulSoup
+    
+    url = f"https://www.linkedin.com/jobs/search?keywords={urllib.parse.quote(keyword)}&location={urllib.parse.quote(location)}&f_TPR=r86400"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        job_cards = soup.find_all("div", class_="base-search-card__info")
+        for card in job_cards:
+            title_elem = card.find("h3", class_="base-search-card__title")
+            company_elem = card.find("a", class_="hidden-nested-link")
+            url_elem = card.parent.find("a", class_="base-card__full-link")
+            
+            if title_elem and company_elem and url_elem:
+                title = title_elem.text.strip()
+                company = company_elem.text.strip()
+                job_url = url_elem["href"].split("?")[0]
+                
+                jobs.append({
+                    "title": title,
+                    "company": company,
+                    "url": job_url,
+                    "description": f"Role: {title} at {company}. (LinkedIn listing). Candidate must evaluate fit based on standard {keyword} responsibilities."
+                })
+    except Exception as e:
+        print(f"LinkedIn Scrape Error: {e}")
+
+    # 2. Scrape Remotive Free JSON API
+    print(f"🔍 Querying Remotive API for {keyword}...")
+    try:
+        rem_url = f"https://remotive.com/api/remote-jobs?search={urllib.parse.quote(keyword)}"
+        rem_res = requests.get(rem_url, timeout=10)
+        if rem_res.status_code == 200:
+            rem_jobs = rem_res.json().get("jobs", [])
+            for r in rem_jobs:
+                jobs.append({
+                    "title": r.get("title"),
+                    "company": r.get("company_name"),
+                    "url": r.get("url"),
+                    "description": BeautifulSoup(r.get("description", ""), "html.parser").text[:500] + "..." # Truncate HTML
+                })
+    except Exception as e:
+        print(f"Remotive API Error: {e}")
+
     return jobs
 
 def evaluate_job_match(job):
@@ -103,7 +103,9 @@ def evaluate_job_match(job):
     Analyze this Job Description against the Candidate's Resume. This candidate is highly specialized in Multimodal ML and High-Performance Systems (Go/PyTorch).
     
     Return ONLY a JSON response in this exact format:
-    {{"is_match": true/false, "match_reason": "Brief 1-sentence explanation why it is or isn't a fit."}}
+    {{"is_match": true, "match_reason": "Brief 1-sentence explanation why it is or isn't a fit.", "contact_email": "found_or_guessed_email@company.com"}}
+    
+    If the job description contains a recruiter or application email, extract it exactly. If not, intelligently guess the most likely careers email based on the company name (e.g., careers@company.com or jobs@company.com).
 
     Job Title: {job['title']}
     Job Description: {job['description']}
@@ -119,12 +121,19 @@ def evaluate_job_match(job):
             temperature=0.1
         )
         result = response.choices[0].message.content
-        # Simple JSON extraction
-        is_match = "true" in result.lower()
-        return is_match, result
+        try:
+            import json
+            data = json.loads(result)
+            is_match = data.get("is_match", False)
+            reason = data.get("match_reason", "")
+            contact_email = data.get("contact_email", f"careers@{job['company'].lower().replace(' ', '')}.com")
+            return is_match, reason, contact_email
+        except Exception:
+            is_match = "true" in result.lower()
+            return is_match, result, f"careers@{job['company'].lower().replace(' ', '')}.com"
     except Exception as e:
         print(f"❌ OpenAI API Error during evaluation. Check your API Key.")
-        return False, str(e)
+        return False, str(e), ""
 
 def draft_cold_email(job):
     """
@@ -180,11 +189,12 @@ def main():
     
     match_count = 0
     for job in unique_jobs:
-        is_match, reason = evaluate_job_match(job)
+        is_match, reason, contact_email = evaluate_job_match(job)
         if is_match:
             match_count += 1
             report_lines.append(f"## ✅ MATCH: {job['title']} @ {job['company']}")
             report_lines.append(f"**Apply Link:** [Click Here to Apply]({job['url']})")
+            report_lines.append(f"**📬 Contact Email:** {contact_email}")
             report_lines.append(f"\n**AI Reasoning:**\n```json\n{reason}\n```\n")
             
             print(f"✍️ Drafting email for {job['company']}...")

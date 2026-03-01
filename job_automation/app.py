@@ -92,12 +92,13 @@ if st.button("🚀 Start AI Job Hunt", type="primary"):
         
         for i, job in enumerate(jobs):
             # Evaluate using OpenAI
-            is_match, reason = evaluate_job_match(job)
+            is_match, reason, contact_email = evaluate_job_match(job)
             
             if is_match:
                 match_count += 1
                 with st.container():
                     st.markdown(f"### [🔗 {job['title']} @ {job['company']}]({job['url']})")
+                    st.success(f"**📬 Contact Email:** [{contact_email}](mailto:{contact_email})")
                     
                     # Display the AI's logic
                     st.info(f"**AI Reasoning:**\n\n{reason}")
