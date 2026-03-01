@@ -38,7 +38,10 @@ def fetch_real_jobs(keyword, location="remote"):
     Fetches real job listings using the Adzuna API. 
     If keys are missing, falls back to a mock list.
     """
-    if "YOUR_APP" in ADZUNA_APP_ID:
+    app_id = os.environ.get("ADZUNA_APP_ID", "")
+    app_key = os.environ.get("ADZUNA_APP_KEY", "")
+
+    if not app_id or "YOUR_APP" in app_id:
         print("⚠️ Adzuna API keys not set. Falling back to mock data for demonstration.")
         return [
             {
@@ -65,8 +68,8 @@ def fetch_real_jobs(keyword, location="remote"):
     print(f"🔍 Fetching {keyword} jobs from Adzuna API...")
     url = f"https://api.adzuna.com/v1/api/jobs/us/search/1"
     params = {
-        "app_id": ADZUNA_APP_ID,
-        "app_key": ADZUNA_APP_KEY,
+        "app_id": app_id,
+        "app_key": app_key,
         "results_per_page": 10,
         "what": keyword,
         "where": location
@@ -89,6 +92,10 @@ def evaluate_job_match(job):
     """
     Uses OpenAI GPT-3.5 to determine if the job aligns with your M.Tech profile.
     """
+    openai_key = os.environ.get("OPENAI_API_KEY", OPENAI_API_KEY)
+    if openai_key and "YOUR" not in openai_key:
+        openai.api_key = openai_key
+        
     print(f"🧠 Evaluating Match: {job['title']} at {job['company']}")
     
     prompt = f"""
@@ -123,6 +130,10 @@ def draft_cold_email(job):
     """
     Uses GPT-4o (or 4) to draft a highly personalized, aggressive cold email to the hiring manager.
     """
+    openai_key = os.environ.get("OPENAI_API_KEY", OPENAI_API_KEY)
+    if openai_key and "YOUR" not in openai_key:
+        openai.api_key = openai_key
+        
     prompt = f"""
     Write a concise, compelling cold email (max 120 words) to the hiring recruiter at {job['company']} for the {job['title']} role.
     Do NOT use fluff or generic corporate speak. Be direct, technical, and confident.
