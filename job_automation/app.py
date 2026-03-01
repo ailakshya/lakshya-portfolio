@@ -7,6 +7,7 @@ from collections import defaultdict
 from analyze_session import parse_markdown_session
 from recruiter_tracker import log_email_sent, was_contacted, get_all_records, update_status
 from email_sender import send_cold_email, extract_subject_from_draft
+from gmail_oauth import send_gmail_oauth, is_gmail_oauth_ready, is_gmail_token_cached
 try:
     import plotly.graph_objects as go
     HAS_PLOTLY = True
@@ -44,24 +45,38 @@ with st.sidebar:
     # Email Sender Config
     st.subheader("📧 Email Sender")
     
-    st.markdown("**✅ Easiest — Outlook / Hotmail** (regular password, no setup):")
+    # ── Gmail OAuth (recommended for Gmail users) ──
+    st.markdown("🟢 **Gmail via Google Sign-In** (Recommended for Gmail users)")
+    if is_gmail_oauth_ready():
+        if is_gmail_token_cached():
+            st.success("✅ Gmail connected! Ready to send bulk emails.")
+        else:
+            st.info("🔑 Click **Send** once — a browser will open for Google sign-in, then auto-close.")
+    else:
+        st.warning(
+            "⚠️ **First-time Gmail setup (5 min):**\n"
+            "1. Go to [Google Cloud Console](https://console.cloud.google.com)\n"
+            "2. New project → Enable **Gmail API**\n"
+            "3. OAuth Consent Screen → External → Add your email as test user\n"
+            "4. Credentials → Create **OAuth 2.0 Client ID** → Desktop App → Download JSON\n"
+            "5. Rename the file to **`gmail_credentials.json`** and place it in the job_automation folder"
+        )
+    
+    st.markdown("**or** Outlook / Hotmail:")
     outlook_email = st.text_input("📤 Outlook Email", value=os.environ.get("OUTLOOK_EMAIL", ""),
                                   placeholder="you@outlook.com or you@hotmail.com")
     outlook_password = st.text_input("🔑 Outlook Password", type="password",
-                                     value=os.environ.get("OUTLOOK_PASS", ""),
-                                     help="Your regular Outlook/Hotmail/Live password")
+                                     value=os.environ.get("OUTLOOK_PASS", ""))
     
-    with st.expander("🔧 Other Options (SendGrid / Gmail)", expanded=False):
+    with st.expander("🔧 Other Options (SendGrid / Gmail App Password)", expanded=False):
         sendgrid_api_key = st.text_input("SendGrid API Key", type="password",
                                          value=os.environ.get("SENDGRID_API_KEY", ""),
                                          help="Free at sendgrid.com → Settings → API Keys")
         gmail_address = st.text_input("Gmail Address", value=os.environ.get("SENDER_GMAIL", ""),
                                       placeholder="you@gmail.com")
         gmail_app_password = st.text_input("Gmail App Password", type="password",
-                                           value=os.environ.get("SENDER_APP_PASS", ""),
-                                           help="myaccount.google.com/apppasswords — personal only")
+                                           value=os.environ.get("SENDER_APP_PASS", ""))
     
-    # Use outlook email as sender if set, else gmail
     sender_email = outlook_email or gmail_address
     portfolio_url = st.text_input("🌐 Portfolio URL", value="https://ailakshya.in")
 
@@ -557,6 +572,78 @@ if start_new_run or st.session_state.get("resume_run", False):
             st.session_state.last_export_md = export_md
             st.session_state.last_match_count = match_count
             st.session_state.last_filename = filename
+            
+            # ═══════════════════════════════════════════
+            # BULK SEND ALL EMAILS via Gmail OAuth
+            # ═══════════════════════════════════════════
+            st.markdown("---")
+            st.subheader("📤 Bulk Send All Emails via Gmail")
+            
+            if not is_gmail_oauth_ready():
+                st.warning(
+                    "⚠️ Gmail not connected yet. Set up `gmail_credentials.json` (see sidebar) "
+                    "to enable one-click bulk sending."
+                )
+            else:
+                bulk_resume_note = f"📎 Resume: `{resume_file.name}`" if resume_file else "⚠️ No resume uploaded (sidebar → 📎 Resume)"
+                st.info(
+                    f"Ready to send **{match_count} emails** through your Gmail with resume attached.  \n"
+                    f"{bulk_resume_note}"
+                )
+                if st.button(f"🚀 Send All {match_count} Emails Now via Gmail", type="primary", key="bulk_send_all"):
+                    bulk_results = []
+                    prog = st.progress(0)
+                    sent_count = 0
+                    
+                    # Re-collect matched jobs from export markdown
+                    for j_idx, j_job in enumerate(jobs):
+                        # Re-evaluate to get draft (from export_md if available)
+                        import re
+                        job_marker = f"## ✅ MATCH: {j_job['title']} @ {j_job['company']}"
+                        if job_marker in export_md:
+                            # Extract email draft for this job from the export
+                            section_match = re.search(
+                                rf"{re.escape(job_marker)}.*?### ✉️ Drafted Cold Email:\n\n---\n(.*?)\n---",
+                                export_md, re.DOTALL
+                            )
+                            email_body = section_match.group(1).strip() if section_match else ""
+                            
+                            # Extract recruiter email from export
+                            email_match = re.search(
+                                rf"{re.escape(job_marker)}.*?\*\*📬 Contact Email:\*\* ([^\n]+)",
+                                export_md, re.DOTALL
+                            )
+                            recruiter_email = email_match.group(1).strip() if email_match else j_job.get("email", "")
+                            
+                            if recruiter_email and "@" in recruiter_email and email_body:
+                                subj = extract_subject_from_draft(email_body)
+                                ok, msg_b = send_gmail_oauth(
+                                    recipient_email=recruiter_email,
+                                    subject=subj,
+                                    body=email_body,
+                                    resume_path=resume_path,
+                                    portfolio_url=portfolio_url
+                                )
+                                bulk_results.append((j_job['company'], recruiter_email, ok, msg_b))
+                                if ok:
+                                    sent_count += 1
+                                    log_email_sent(
+                                        job_title=j_job['title'],
+                                        company=j_job['company'],
+                                        recruiter_email=recruiter_email,
+                                        email_subject=subj,
+                                        email_body=email_body,
+                                        job_url=j_job['url']
+                                    )
+                        prog.progress(min((j_idx + 1) / len(jobs), 1.0))
+                    
+                    st.success(f"✅ Bulk send complete! Sent {sent_count}/{len(bulk_results)} emails.")
+                    for company, email, ok, msg_b in bulk_results:
+                        if ok:
+                            st.success(f"  📧 {company} ({email}) — {msg_b}")
+                        else:
+                            st.error(f"  ❌ {company} ({email}) — {msg_b}")
+
 
 # =========================
 # RENDER PAST SEARCHES (At end to capture new saves immediately)
