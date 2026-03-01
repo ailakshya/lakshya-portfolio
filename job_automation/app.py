@@ -27,30 +27,6 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Past Searches functionality
-    st.subheader("📂 Past Searches")
-    os.makedirs("saved_searches", exist_ok=True)
-    saved_files = sorted([f for f in os.listdir("saved_searches") if f.endswith(".md")], reverse=True)
-    if saved_files:
-        for sf in saved_files:
-            with open(os.path.join("saved_searches", sf), "r") as f:
-                file_content = f.read()
-            
-            # Create a clean label
-            label_time = sf.replace("ai_job_matches_", "").replace(".md", "")
-            
-            st.download_button(
-                label=f"📥 Saved: {label_time}", 
-                data=file_content, 
-                file_name=sf, 
-                mime="text/markdown", 
-                key=sf
-            )
-    else:
-        st.info("No past searches run yet.")
-
-    st.markdown("---")
-    
     # Resume editing
     st.subheader("📄 Your Profile / Resume")
     resume_text = st.text_area("Edit Profile to feed to AI:", value=USER_RESUME, height=300)
@@ -125,6 +101,21 @@ with col1:
         job_keywords.append(custom_keyword.strip())
 with col2:
     job_location = st.text_input("Location", value="Remote")
+
+# =========================
+# LATEST RESULTS EXPORT
+# =========================
+if st.session_state.last_export_md:
+    st.markdown("---")
+    st.subheader(f"📥 Download Latest Session ({st.session_state.last_match_count} Matches)")
+    st.download_button(
+        label="Download Markdown Report",
+        data=st.session_state.last_export_md,
+        file_name=st.session_state.last_filename,
+        mime="text/markdown",
+        type="primary"
+    )
+    st.markdown("---")
 
 # Inject keys back into env vars for the backend logic
 os.environ["OPENAI_API_KEY"] = openai_key
@@ -251,15 +242,26 @@ if start_new_run or st.session_state.get("resume_run", False):
             st.session_state.last_filename = filename
 
 # =========================
-# LATEST RESULTS EXPORT
+# RENDER PAST SEARCHES (At end to capture new saves immediately)
 # =========================
-if st.session_state.last_export_md:
+with st.sidebar:
     st.markdown("---")
-    st.subheader(f"📥 Download Latest Session ({st.session_state.last_match_count} Matches)")
-    st.download_button(
-        label="Download Markdown Report",
-        data=st.session_state.last_export_md,
-        file_name=st.session_state.last_filename,
-        mime="text/markdown",
-        type="primary"
-    )
+    st.subheader("📂 Past Searches")
+    os.makedirs("saved_searches", exist_ok=True)
+    saved_files = sorted([f for f in os.listdir("saved_searches") if f.endswith(".md")], reverse=True)
+    if saved_files:
+        for sf in saved_files:
+            with open(os.path.join("saved_searches", sf), "r") as f:
+                file_content = f.read()
+            
+            label_time = sf.replace("ai_job_matches_", "").replace(".md", "")
+            
+            st.download_button(
+                label=f"📥 Saved: {label_time}", 
+                data=file_content, 
+                file_name=sf, 
+                mime="text/markdown", 
+                key=sf
+            )
+    else:
+        st.info("No past searches run yet.")
