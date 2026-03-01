@@ -14,6 +14,8 @@ if "last_match_count" not in st.session_state:
     st.session_state.last_match_count = 0
 if "last_filename" not in st.session_state:
     st.session_state.last_filename = ""
+if "viewing_past_session" not in st.session_state:
+    st.session_state.viewing_past_session = None
 
 st.title("🤖 AI Job Finder & Automated Outreach")
 st.markdown("Search for jobs online, evaluate them against your specific profile using OpenAI, and instantly draft 10x cold emails.")
@@ -71,6 +73,30 @@ else:
     st.session_state.resume_run = False
 
 # =========================
+# LATEST RESULTS EXPORT & HISTORY VIEW (AT TOP)
+# =========================
+if st.session_state.last_export_md and not st.session_state.viewing_past_session:
+    st.success(f"🎉 Latest Job Hunt Complete! ({st.session_state.last_match_count} Matches Found)")
+    st.download_button(
+        label="📥 Download Latest Session (Markdown)",
+        data=st.session_state.last_export_md,
+        file_name=st.session_state.last_filename,
+        mime="text/markdown",
+        type="primary"
+    )
+    st.markdown("---")
+
+if st.session_state.viewing_past_session:
+    st.info(f"📂 **Viewing Historical Search:** {st.session_state.viewing_past_session['name']}")
+    if st.button("❌ Close History View"):
+        st.session_state.viewing_past_session = None
+        st.rerun()
+    
+    with st.container():
+        st.markdown(st.session_state.viewing_past_session['content'])
+    st.markdown("---")
+
+# =========================
 # MAIN AREA: SEARCH ACTIONS
 # =========================
 st.subheader("🔍 Search Parameters")
@@ -101,21 +127,6 @@ with col1:
         job_keywords.append(custom_keyword.strip())
 with col2:
     job_location = st.text_input("Location", value="Remote")
-
-# =========================
-# LATEST RESULTS EXPORT
-# =========================
-if st.session_state.last_export_md:
-    st.markdown("---")
-    st.subheader(f"📥 Download Latest Session ({st.session_state.last_match_count} Matches)")
-    st.download_button(
-        label="Download Markdown Report",
-        data=st.session_state.last_export_md,
-        file_name=st.session_state.last_filename,
-        mime="text/markdown",
-        type="primary"
-    )
-    st.markdown("---")
 
 # Inject keys back into env vars for the backend logic
 os.environ["OPENAI_API_KEY"] = openai_key
@@ -256,12 +267,23 @@ with st.sidebar:
             
             label_time = sf.replace("ai_job_matches_", "").replace(".md", "")
             
-            st.download_button(
-                label=f"📥 Saved: {label_time}", 
-                data=file_content, 
-                file_name=sf, 
-                mime="text/markdown", 
-                key=sf
-            )
+            st.markdown(f"**{label_time}**")
+            colA, colB = st.columns([1, 1])
+            with colA:
+                if st.button("👁️ View", key=f"view_{sf}"):
+                    st.session_state.viewing_past_session = {
+                        "name": label_time,
+                        "content": file_content
+                    }
+                    st.rerun()
+            with colB:
+                st.download_button(
+                    label="📥 D/L", 
+                    data=file_content, 
+                    file_name=sf, 
+                    mime="text/markdown", 
+                    key=f"dl_{sf}"
+                )
+            st.markdown("---")
     else:
         st.info("No past searches run yet.")
