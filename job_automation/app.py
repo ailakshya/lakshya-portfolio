@@ -29,6 +29,9 @@ if "viewing_past_session" not in st.session_state:
     st.session_state.viewing_past_session = None
 if "skills_data" not in st.session_state:
     st.session_state.skills_data = {}
+if "gmail_drafts" not in st.session_state:
+    # List of dicts: {company, recruiter_email, subject, body, job_url}
+    st.session_state.gmail_drafts = []
 
 st.title("🤖 AI Job Finder & Automated Outreach")
 st.markdown("Search for jobs online, evaluate them against your specific profile using OpenAI, and instantly draft 10x cold emails.")
@@ -294,7 +297,7 @@ if st.session_state.viewing_past_session:
             if j['skills']:
                 st.caption("Skills: " + " ".join([f"`{s}`" for s in j['skills']][:10]))
             
-            # Send button using mailto (works for everyone, no setup)
+            # Gmail compose button in history view (no setup, no API)
             if j.get('email') and '@' in j['email']:
                 import urllib.parse
                 default_subject = f"Interested in {j['title']} role at {j['company']}"
@@ -303,14 +306,17 @@ if st.session_state.viewing_past_session:
                     f"I'm a Multimodal ML researcher with expertise in PyTorch, Go, and GPU optimization.\n\n"
                     f"Portfolio: https://ailakshya.in\n\nLooking forward to connecting!\n\nBest,\nLakshya"
                 )
-                mailto_url = (f"mailto:{urllib.parse.quote(j['email'])}"
-                              f"?subject={urllib.parse.quote(default_subject)}"
-                              f"&body={urllib.parse.quote(default_body)}")
+                gmail_url = (
+                    f"https://mail.google.com/mail/?view=cm&fs=1"
+                    f"&to={urllib.parse.quote(j['email'])}"
+                    f"&su={urllib.parse.quote(default_subject)}"
+                    f"&body={urllib.parse.quote(default_body[:1500])}"
+                )
                 st.markdown(
-                    f'<a href="{mailto_url}" target="_blank">'
-                    f'<button style="background:#1E88E5;color:white;border:none;'
+                    f'<a href="{gmail_url}" target="_blank">'
+                    f'<button style="background:#EA4335;color:white;border:none;'
                     f'padding:8px 18px;border-radius:7px;font-size:14px;cursor:pointer;">'
-                    f'📧 Open in Email App</button></a>',
+                    f'📧 Open in Gmail</button></a>',
                     unsafe_allow_html=True
                 )
             st.markdown("---")
@@ -477,21 +483,35 @@ if start_new_run or st.session_state.get("resume_run", False):
                     
                     # ── EASIEST: mailto link (zero setup, opens any email app) ──
                     import urllib.parse
-                    body_preview = email_draft[:1800]
-                    mailto_url = (f"mailto:{urllib.parse.quote(contact_email)}"
-                                  f"?subject={urllib.parse.quote(subject)}"
-                                  f"&body={urllib.parse.quote(body_preview)}")
+                    body_preview = email_draft[:1500]
+                    gmail_compose_url = (
+                        f"https://mail.google.com/mail/?view=cm&fs=1"
+                        f"&to={urllib.parse.quote(contact_email)}"
+                        f"&su={urllib.parse.quote(subject)}"
+                        f"&body={urllib.parse.quote(body_preview)}"
+                    )
+                    
+                    # Store draft for the bulk Gmail panel below
+                    st.session_state.gmail_drafts.append({
+                        "company": job['company'],
+                        "recruiter_email": contact_email,
+                        "subject": subject,
+                        "body": body_preview,
+                        "job_url": job['url'],
+                        "gmail_url": gmail_compose_url
+                    })
                     
                     btn_col1, btn_col2 = st.columns([2, 3])
                     with btn_col1:
                         st.markdown(
-                            f'<a href="{mailto_url}" target="_blank">'
-                            f'<button style="background:#1E88E5;color:white;border:none;'
+                            f'<a href="{gmail_compose_url}" target="_blank">'
+                            f'<button style="background:#EA4335;color:white;border:none;'
                             f'padding:10px 20px;border-radius:8px;font-size:15px;'
-                            f'cursor:pointer;width:100%">📧 Open in Email App</button></a>',
+                            f'cursor:pointer;width:100%">📧 Open in Gmail</button></a>',
                             unsafe_allow_html=True
                         )
-                        st.caption("Opens Gmail/Outlook/Mail with everything pre-filled — no setup needed")
+                        st.caption("Opens Gmail compose with everything pre-filled — just hit Send")
+
                     
                     # ── OPTIONAL: SendGrid tracked send ──
                     with btn_col2:
@@ -573,76 +593,86 @@ if start_new_run or st.session_state.get("resume_run", False):
             st.session_state.last_match_count = match_count
             st.session_state.last_filename = filename
             
-            # ═══════════════════════════════════════════
-            # BULK SEND ALL EMAILS via Gmail OAuth
-            # ═══════════════════════════════════════════
+            # ═══════════════════════════════════════════════════
+            # BULK EMAIL PANEL — no API, no debit card needed
+            # ═══════════════════════════════════════════════════
             st.markdown("---")
-            st.subheader("📤 Bulk Send All Emails via Gmail")
+            st.subheader("📤 Send All Emails (Bulk — No Setup Required)")
             
-            if not is_gmail_oauth_ready():
-                st.warning(
-                    "⚠️ Gmail not connected yet. Set up `gmail_credentials.json` (see sidebar) "
-                    "to enable one-click bulk sending."
-                )
-            else:
-                bulk_resume_note = f"📎 Resume: `{resume_file.name}`" if resume_file else "⚠️ No resume uploaded (sidebar → 📎 Resume)"
-                st.info(
-                    f"Ready to send **{match_count} emails** through your Gmail with resume attached.  \n"
-                    f"{bulk_resume_note}"
-                )
-                if st.button(f"🚀 Send All {match_count} Emails Now via Gmail", type="primary", key="bulk_send_all"):
-                    bulk_results = []
-                    prog = st.progress(0)
-                    sent_count = 0
+            drafts = st.session_state.get("gmail_drafts", [])
+            if drafts:
+                tab1, tab2 = st.tabs(["📥 Download .eml Files (with Resume)", "📧 Open All in Gmail"])
+                
+                # ── TAB 1: .eml ZIP with resume embedded ──
+                with tab1:
+                    st.info(
+                        "⬇️ Downloads a ZIP of individual email files — **one per recruiter**.  \n"
+                        "Each file already has **your resume embedded**. Double-click any file → "
+                        "it opens as a Gmail draft ready to send."
+                    )
+                    import zipfile, io
+                    from email.mime.multipart import MIMEMultipart as _MP
+                    from email.mime.text import MIMEText as _MT
+                    from email.mime.base import MIMEBase as _MB
+                    from email import encoders as _enc
+                    import base64
                     
-                    # Re-collect matched jobs from export markdown
-                    for j_idx, j_job in enumerate(jobs):
-                        # Re-evaluate to get draft (from export_md if available)
-                        import re
-                        job_marker = f"## ✅ MATCH: {j_job['title']} @ {j_job['company']}"
-                        if job_marker in export_md:
-                            # Extract email draft for this job from the export
-                            section_match = re.search(
-                                rf"{re.escape(job_marker)}.*?### ✉️ Drafted Cold Email:\n\n---\n(.*?)\n---",
-                                export_md, re.DOTALL
-                            )
-                            email_body = section_match.group(1).strip() if section_match else ""
+                    zip_buf = io.BytesIO()
+                    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                        for idx, d in enumerate(drafts):
+                            msg = _MP()
+                            msg["To"] = d["recruiter_email"]
+                            msg["Subject"] = d["subject"]
+                            msg["From"] = "me"
+                            msg.attach(_MT(d["body"], "plain"))
                             
-                            # Extract recruiter email from export
-                            email_match = re.search(
-                                rf"{re.escape(job_marker)}.*?\*\*📬 Contact Email:\*\* ([^\n]+)",
-                                export_md, re.DOTALL
-                            )
-                            recruiter_email = email_match.group(1).strip() if email_match else j_job.get("email", "")
+                            # Embed resume PDF if uploaded
+                            if resume_path and os.path.exists(resume_path):
+                                with open(resume_path, "rb") as rf:
+                                    part = _MB("application", "octet-stream")
+                                    part.set_payload(rf.read())
+                                _enc.encode_base64(part)
+                                fname = os.path.basename(resume_path)
+                                part.add_header("Content-Disposition", f"attachment; filename={fname}")
+                                msg.attach(part)
                             
-                            if recruiter_email and "@" in recruiter_email and email_body:
-                                subj = extract_subject_from_draft(email_body)
-                                ok, msg_b = send_gmail_oauth(
-                                    recipient_email=recruiter_email,
-                                    subject=subj,
-                                    body=email_body,
-                                    resume_path=resume_path,
-                                    portfolio_url=portfolio_url
-                                )
-                                bulk_results.append((j_job['company'], recruiter_email, ok, msg_b))
-                                if ok:
-                                    sent_count += 1
-                                    log_email_sent(
-                                        job_title=j_job['title'],
-                                        company=j_job['company'],
-                                        recruiter_email=recruiter_email,
-                                        email_subject=subj,
-                                        email_body=email_body,
-                                        job_url=j_job['url']
-                                    )
-                        prog.progress(min((j_idx + 1) / len(jobs), 1.0))
+                            safe_name = d['company'].replace('/', '-').replace(' ', '_')[:30]
+                            zf.writestr(f"{idx+1:02d}_{safe_name}.eml", msg.as_string())
                     
-                    st.success(f"✅ Bulk send complete! Sent {sent_count}/{len(bulk_results)} emails.")
-                    for company, email, ok, msg_b in bulk_results:
-                        if ok:
-                            st.success(f"  📧 {company} ({email}) — {msg_b}")
-                        else:
-                            st.error(f"  ❌ {company} ({email}) — {msg_b}")
+                    zip_buf.seek(0)
+                    resume_note = f"(resume: `{resume_file.name}`)" if resume_file else "(⚠️ upload resume in sidebar to attach it)"
+                    st.download_button(
+                        label=f"⬇️ Download {len(drafts)} Email Files as ZIP {resume_note}",
+                        data=zip_buf,
+                        file_name=f"recruiter_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+                        mime="application/zip",
+                        type="primary"
+                    )
+                    st.caption(
+                        "After downloading: unzip → double-click each .eml → it opens in your mail app "
+                        "with resume attached → click **Send**"
+                    )
+                
+                # ── TAB 2: Quick Gmail compose links (no resume, but instant) ──
+                with tab2:
+                    st.info(
+                        "Click each button below — **Gmail compose opens** with the cold email pre-filled.  \n"
+                        "📎 To add your resume: click the **paperclip icon** in Gmail before hitting Send."
+                    )
+                    for d in drafts:
+                        col_a, col_b = st.columns([3, 1])
+                        with col_a:
+                            st.markdown(f"**{d['company']}** — `{d['recruiter_email']}`")
+                            st.caption(d['subject'])
+                        with col_b:
+                            st.markdown(
+                                f'<a href="{d["gmail_url"]}" target="_blank">'
+                                f'<button style="background:#EA4335;color:white;border:none;'
+                                f'padding:7px 16px;border-radius:6px;cursor:pointer;">📧 Open</button></a>',
+                                unsafe_allow_html=True
+                            )
+                        st.markdown("---")
+
 
 
 # =========================
