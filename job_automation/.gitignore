@@ -1,0 +1,8 @@
+.env
+gmail_credentials.json
+gmail_token.json
+my_resume.pdf
+recruiter_history.json
+usd_inr_cache.json
+__pycache__/
+*.pyc

@@ -5,3 +5,4 @@ streamlit==1.32.0
 plotly
 google-auth-oauthlib
 google-api-python-client
+python-dotenv

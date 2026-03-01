@@ -1,5 +1,11 @@
 import streamlit as st
 import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv()  # loads .env file → SENDGRID_API_KEY, SENDER_GMAIL auto-populated
+except ImportError:
+    pass
+
 import json
 import tempfile
 from datetime import datetime
