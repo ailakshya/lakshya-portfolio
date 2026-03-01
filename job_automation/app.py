@@ -1,8 +1,16 @@
 import streamlit as st
 import os
+from datetime import datetime
 from automate_jobs import fetch_real_jobs, evaluate_job_match, draft_cold_email, USER_RESUME
 
 st.set_page_config(page_title="AI Job Finder & Outreach Portal", page_icon="🤖", layout="wide")
+
+if "last_export_md" not in st.session_state:
+    st.session_state.last_export_md = ""
+if "last_match_count" not in st.session_state:
+    st.session_state.last_match_count = 0
+if "last_filename" not in st.session_state:
+    st.session_state.last_filename = ""
 
 st.title("🤖 AI Job Finder & Automated Outreach")
 st.markdown("Search for jobs online, evaluate them against your specific profile using OpenAI, and instantly draft 10x cold emails.")
@@ -14,6 +22,30 @@ with st.sidebar:
     st.subheader("API Keys")
     openai_key = st.text_input("OpenAI API Key (Required)", type="password", value=os.environ.get("OPENAI_API_KEY", ""))
     
+    st.markdown("---")
+    
+    # Past Searches functionality
+    st.subheader("📂 Past Searches")
+    os.makedirs("saved_searches", exist_ok=True)
+    saved_files = sorted([f for f in os.listdir("saved_searches") if f.endswith(".md")], reverse=True)
+    if saved_files:
+        for sf in saved_files:
+            with open(os.path.join("saved_searches", sf), "r") as f:
+                file_content = f.read()
+            
+            # Create a clean label
+            label_time = sf.replace("ai_job_matches_", "").replace(".md", "")
+            
+            st.download_button(
+                label=f"📥 Saved: {label_time}", 
+                data=file_content, 
+                file_name=sf, 
+                mime="text/markdown", 
+                key=sf
+            )
+    else:
+        st.info("No past searches run yet.")
+
     st.markdown("---")
     
     # Resume editing
@@ -88,6 +120,9 @@ if st.button("🚀 Start AI Job Hunt", type="primary"):
         match_count = 0
         progress_bar = st.progress(0)
         
+        # Initialize export data
+        export_md = f"# AI Job Hunt Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        
         st.subheader("✨ AI Evaluated Matches")
         
         for i, job in enumerate(jobs):
@@ -112,6 +147,13 @@ if st.button("🚀 Start AI Job Hunt", type="primary"):
                         st.code(email_draft, language="markdown")
                     
                     st.markdown("---")
+                    
+                    # Append to export
+                    export_md += f"## ✅ MATCH: {job['title']} @ {job['company']}\n"
+                    export_md += f"**Apply Link:** [Click Here to Apply]({job['url']})\n"
+                    export_md += f"**📬 Contact Email:** {contact_email}\n\n"
+                    export_md += f"**AI Reasoning:**\n```json\n{reason}\n```\n\n"
+                    export_md += f"### ✉️ Drafted Cold Email:\n\n---\n{email_draft}\n---\n\n"
             
             # Update Progress
             progress_bar.progress((i + 1) / len(jobs))
@@ -120,3 +162,29 @@ if st.button("🚀 Start AI Job Hunt", type="primary"):
             st.warning("The AI evaluated all the jobs, but none were a strong enough technical match for your elite profile. Try broadening the search keyword!")
         else:
             st.success(f"Successfully evaluated and drafted {match_count} highly targeted emails!")
+            
+            # Save the file locally
+            os.makedirs("saved_searches", exist_ok=True)
+            filename = f"ai_job_matches_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+            filepath = os.path.join("saved_searches", filename)
+            with open(filepath, "w") as f:
+                f.write(export_md)
+                
+            # Save to session state so we can display download button persistently outside the 'if' block
+            st.session_state.last_export_md = export_md
+            st.session_state.last_match_count = match_count
+            st.session_state.last_filename = filename
+
+# =========================
+# LATEST RESULTS EXPORT
+# =========================
+if st.session_state.last_export_md:
+    st.markdown("---")
+    st.subheader(f"📥 Download Latest Session ({st.session_state.last_match_count} Matches)")
+    st.download_button(
+        label="Download Markdown Report",
+        data=st.session_state.last_export_md,
+        file_name=st.session_state.last_filename,
+        mime="text/markdown",
+        type="primary"
+    )
