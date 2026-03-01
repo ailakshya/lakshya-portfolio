@@ -1,13 +1,12 @@
 """
 email_sender.py
-Supports two email providers:
-  1. Gmail SMTP with App Password (personal Gmail only)
-  2. SendGrid API (recommended - works with any account, free 100/day)
+Supports three email providers (pick any one):
+  1. Outlook / Hotmail — just your regular email + password ✅ EASIEST
+  2. SendGrid API — free 100/day, works with any account
+  3. Gmail SMTP — personal Gmail with App Password only
 
-SendGrid setup (2 minutes):
-  1. Go to https://signup.sendgrid.com (free account)
-  2. Settings → API Keys → Create API Key (Full Access)
-  3. Paste the key in the sidebar
+Outlook setup: just enter your @outlook.com / @hotmail.com / @live.com email
+and your normal password in the sidebar. Nothing else needed.
 """
 import smtplib
 import os
@@ -121,9 +120,45 @@ def send_via_gmail(
         resume_note = " (+ resume attached)" if has_resume else ""
         return True, f"✅ Email sent to {recipient_email} via Gmail{resume_note}"
     except smtplib.SMTPAuthenticationError:
-        return False, "❌ Gmail auth failed. App Passwords require a personal Gmail with 2FA. Try SendGrid instead."
+        return False, "❌ Gmail auth failed. App Passwords require a personal Gmail with 2FA. Try Outlook instead."
     except Exception as e:
         return False, f"❌ Gmail error: {str(e)}"
+
+
+def send_via_outlook(
+    sender_email: str,
+    password: str,
+    recipient_email: str,
+    subject: str,
+    body: str,
+    resume_path: str = None,
+    portfolio_url: str = "https://ailakshya.in"
+) -> tuple:
+    """Send via Outlook/Hotmail SMTP using regular username + password. No special setup needed."""
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = sender_email
+        msg["To"] = recipient_email
+        msg["Subject"] = subject
+
+        full_body = body
+        if portfolio_url and portfolio_url not in body:
+            full_body += f"\n\n🌐 Portfolio: {portfolio_url}"
+        msg.attach(MIMEText(full_body, "plain"))
+
+        has_resume = _attach_resume(msg, resume_path)
+
+        with smtplib.SMTP("smtp.office365.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, password)
+            server.sendmail(sender_email, recipient_email, msg.as_string())
+
+        resume_note = " (+ resume attached)" if has_resume else ""
+        return True, f"✅ Email sent to {recipient_email} via Outlook{resume_note}"
+    except smtplib.SMTPAuthenticationError:
+        return False, "❌ Outlook auth failed. Check your email and password. Make sure it's an @outlook.com / @hotmail.com account."
+    except Exception as e:
+        return False, f"❌ Outlook error: {str(e)}"
 
 
 def send_cold_email(
@@ -134,22 +169,29 @@ def send_cold_email(
     resume_path: str = None,
     portfolio_url: str = "https://ailakshya.in",
     sendgrid_api_key: str = "",
-    gmail_app_password: str = ""
+    gmail_app_password: str = "",
+    outlook_password: str = ""
 ) -> tuple:
     """
-    Auto-selects provider: SendGrid if API key provided, else Gmail SMTP.
+    Auto-selects provider in priority order:
+    1. Outlook (regular password) if outlook_password provided
+    2. SendGrid if API key provided
+    3. Gmail SMTP if app password provided
     """
     if not recipient_email or "@" not in recipient_email:
         return False, "❌ Invalid recipient email address."
 
-    if sendgrid_api_key and sendgrid_api_key.strip():
+    if outlook_password and outlook_password.strip():
+        return send_via_outlook(sender_email, outlook_password, recipient_email,
+                                subject, body, resume_path, portfolio_url)
+    elif sendgrid_api_key and sendgrid_api_key.strip():
         return send_via_sendgrid(sendgrid_api_key, sender_email, recipient_email,
                                   subject, body, resume_path, portfolio_url)
     elif gmail_app_password and gmail_app_password.strip():
         return send_via_gmail(sender_email, gmail_app_password, recipient_email,
                                subject, body, resume_path, portfolio_url)
     else:
-        return False, "❌ Please provide either a SendGrid API key or a Gmail App Password in the sidebar."
+        return False, "❌ Please add Outlook/Gmail credentials or a SendGrid API key in the sidebar."
 
 
 def extract_subject_from_draft(email_body: str) -> str:

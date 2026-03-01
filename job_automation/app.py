@@ -43,16 +43,28 @@ with st.sidebar:
     
     # Email Sender Config
     st.subheader("📧 Email Sender")
-    st.info("💡 **Recommended:** Use SendGrid (free, works with any Google account)\n[Sign up at sendgrid.com](https://signup.sendgrid.com)")
-    sendgrid_api_key = st.text_input("🔑 SendGrid API Key (Recommended)", type="password",
-                                     value=os.environ.get("SENDGRID_API_KEY", ""),
-                                     help="Sign up free at sendgrid.com → Settings → API Keys")
-    st.markdown("**or** Gmail (personal accounts with 2FA only):")
-    gmail_address = st.text_input("📤 Gmail Address", value=os.environ.get("SENDER_GMAIL", ""), placeholder="you@gmail.com")
-    gmail_app_password = st.text_input("🔒 Gmail App Password", type="password", value=os.environ.get("SENDER_APP_PASS", ""),
-                                       help="myaccount.google.com/apppasswords — personal Gmail + 2FA only")
-    sender_email = sendgrid_api_key and gmail_address or gmail_address
+    
+    st.markdown("**✅ Easiest — Outlook / Hotmail** (regular password, no setup):")
+    outlook_email = st.text_input("📤 Outlook Email", value=os.environ.get("OUTLOOK_EMAIL", ""),
+                                  placeholder="you@outlook.com or you@hotmail.com")
+    outlook_password = st.text_input("🔑 Outlook Password", type="password",
+                                     value=os.environ.get("OUTLOOK_PASS", ""),
+                                     help="Your regular Outlook/Hotmail/Live password")
+    
+    with st.expander("🔧 Other Options (SendGrid / Gmail)", expanded=False):
+        sendgrid_api_key = st.text_input("SendGrid API Key", type="password",
+                                         value=os.environ.get("SENDGRID_API_KEY", ""),
+                                         help="Free at sendgrid.com → Settings → API Keys")
+        gmail_address = st.text_input("Gmail Address", value=os.environ.get("SENDER_GMAIL", ""),
+                                      placeholder="you@gmail.com")
+        gmail_app_password = st.text_input("Gmail App Password", type="password",
+                                           value=os.environ.get("SENDER_APP_PASS", ""),
+                                           help="myaccount.google.com/apppasswords — personal only")
+    
+    # Use outlook email as sender if set, else gmail
+    sender_email = outlook_email or gmail_address
     portfolio_url = st.text_input("🌐 Portfolio URL", value="https://ailakshya.in")
+
     
     st.markdown("---")
     
@@ -266,6 +278,26 @@ if st.session_state.viewing_past_session:
                 col_s.info(f"💰 {inr_display}")
             if j['skills']:
                 st.caption("Skills: " + " ".join([f"`{s}`" for s in j['skills']][:10]))
+            
+            # Send button using mailto (works for everyone, no setup)
+            if j.get('email') and '@' in j['email']:
+                import urllib.parse
+                default_subject = f"Interested in {j['title']} role at {j['company']}"
+                default_body = (
+                    f"Hi,\n\nI came across the {j['title']} role at {j['company']} and would love to discuss further.\n\n"
+                    f"I'm a Multimodal ML researcher with expertise in PyTorch, Go, and GPU optimization.\n\n"
+                    f"Portfolio: https://ailakshya.in\n\nLooking forward to connecting!\n\nBest,\nLakshya"
+                )
+                mailto_url = (f"mailto:{urllib.parse.quote(j['email'])}"
+                              f"?subject={urllib.parse.quote(default_subject)}"
+                              f"&body={urllib.parse.quote(default_body)}")
+                st.markdown(
+                    f'<a href="{mailto_url}" target="_blank">'
+                    f'<button style="background:#1E88E5;color:white;border:none;'
+                    f'padding:8px 18px;border-radius:7px;font-size:14px;cursor:pointer;">'
+                    f'📧 Open in Email App</button></a>',
+                    unsafe_allow_html=True
+                )
             st.markdown("---")
     
     # --- Full raw report (collapsible) ---
@@ -449,19 +481,20 @@ if start_new_run or st.session_state.get("resume_run", False):
                     # ── OPTIONAL: SendGrid tracked send ──
                     with btn_col2:
                         send_key = f"send_{i}_{job['company'].replace(' ','_')}"
-                        if st.button(f"📤 Send & Track via SendGrid", key=send_key):
-                            if not gmail_address and not sendgrid_api_key:
-                                st.error("❌ Add a SendGrid API key in the sidebar to use tracked sending.")
+                        if st.button(f"📤 Send & Track (Outlook/SendGrid)", key=send_key):
+                            if not sender_email and not sendgrid_api_key:
+                                st.error("❌ Add Outlook email+password or a SendGrid API key in the sidebar.")
                             else:
                                 ok, msg_out = send_cold_email(
-                                    sender_email=gmail_address,
+                                    sender_email=sender_email,
                                     recipient_email=contact_email,
                                     subject=subject,
                                     body=email_draft,
                                     resume_path=resume_path,
                                     portfolio_url=portfolio_url,
                                     sendgrid_api_key=sendgrid_api_key,
-                                    gmail_app_password=gmail_app_password
+                                    gmail_app_password=gmail_app_password,
+                                    outlook_password=outlook_password
                                 )
                                 if ok:
                                     st.success(msg_out)
@@ -475,7 +508,8 @@ if start_new_run or st.session_state.get("resume_run", False):
                                     )
                                 else:
                                     st.error(msg_out)
-                        st.caption("Tracked send with resume attachment (optional — needs SendGrid key)")
+                        st.caption("Tracked send with resume attachment (Outlook or SendGrid)")
+
 
                     
                     st.markdown("---")
