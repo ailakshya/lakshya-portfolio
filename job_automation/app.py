@@ -647,10 +647,67 @@ if start_new_run or st.session_state.get("resume_run", False):
             
             drafts = st.session_state.get("gmail_drafts", [])
             if drafts:
-                tab1, tab2 = st.tabs(["📥 Download .eml Files (with Resume)", "📧 Open All in Gmail"])
+                tab1, tab2, tab3 = st.tabs([
+                    "🚀 Send All via SendGrid (Instant + Resume)",
+                    "📥 Download .eml Files (with Resume)",
+                    "📧 Open All in Gmail"
+                ])
                 
-                # ── TAB 1: .eml ZIP with resume embedded ──
+                # ── TAB 1: SendGrid bulk send (RECOMMENDED) ──
                 with tab1:
+                    if not sendgrid_api_key:
+                        st.error("❌ SendGrid API key not set. Check sidebar → 🔧 Other Options.")
+                    else:
+                        resume_note = f"📎 Resume: `{os.path.basename(resume_path)}`" if resume_path else "⚠️ No resume found — upload one in the sidebar"
+                        st.info(
+                            f"Ready to send **{len(drafts)} personalized emails** via SendGrid with resume attached.  \n"
+                            f"{resume_note}  \n"
+                            f"📬 From: `{sender_email}` · Each recruiter gets their own individual email."
+                        )
+                        if st.button(f"🚀 Send All {len(drafts)} Emails via SendGrid", type="primary", key="sg_bulk_all"):
+                            sg_progress = st.progress(0)
+                            sg_sent = 0
+                            sg_failed = 0
+                            results_placeholder = st.empty()
+                            result_rows = []
+                            
+                            for idx, d in enumerate(drafts):
+                                ok, msg_out = send_cold_email(
+                                    sender_email=sender_email,
+                                    recipient_email=d["recruiter_email"],
+                                    subject=d["subject"],
+                                    body=d["body"],
+                                    resume_path=resume_path,
+                                    portfolio_url=portfolio_url,
+                                    sendgrid_api_key=sendgrid_api_key,
+                                    gmail_app_password=gmail_app_password,
+                                    outlook_password=outlook_password
+                                )
+                                if ok:
+                                    sg_sent += 1
+                                    result_rows.append(f"✅ **{d['company']}** → `{d['recruiter_email']}`")
+                                    log_email_sent(
+                                        job_title=d.get("subject", ""),
+                                        company=d["company"],
+                                        recruiter_email=d["recruiter_email"],
+                                        email_subject=d["subject"],
+                                        email_body=d["body"],
+                                        job_url=d.get("job_url", "")
+                                    )
+                                else:
+                                    sg_failed += 1
+                                    result_rows.append(f"❌ **{d['company']}** → {msg_out}")
+                                
+                                sg_progress.progress((idx + 1) / len(drafts))
+                                results_placeholder.markdown("\n".join(result_rows))
+                            
+                            if sg_sent > 0:
+                                st.success(f"🎉 Done! Sent **{sg_sent}** emails with resume. {sg_failed} failed.")
+                            else:
+                                st.error(f"All {sg_failed} sends failed. Check sidebar credentials.")
+                
+                # ── TAB 2: .eml ZIP with resume embedded ──
+                with tab2:
                     st.info(
                         "⬇️ Downloads a ZIP of individual email files — **one per recruiter**.  \n"
                         "Each file already has **your resume embedded**. Double-click any file → "
@@ -686,9 +743,9 @@ if start_new_run or st.session_state.get("resume_run", False):
                             zf.writestr(f"{idx+1:02d}_{safe_name}.eml", msg.as_string())
                     
                     zip_buf.seek(0)
-                    resume_note = f"(resume: `{resume_file.name}`)" if resume_file else "(⚠️ upload resume in sidebar to attach it)"
+                    eml_resume_note = f"(resume: `{resume_file.name}`)" if resume_file else "(⚠️ upload resume in sidebar to attach it)"
                     st.download_button(
-                        label=f"⬇️ Download {len(drafts)} Email Files as ZIP {resume_note}",
+                        label=f"⬇️ Download {len(drafts)} Email Files as ZIP {eml_resume_note}",
                         data=zip_buf,
                         file_name=f"recruiter_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
                         mime="application/zip",
@@ -699,8 +756,8 @@ if start_new_run or st.session_state.get("resume_run", False):
                         "with resume attached → click **Send**"
                     )
                 
-                # ── TAB 2: Quick Gmail compose links (no resume, but instant) ──
-                with tab2:
+                # ── TAB 3: Quick Gmail compose links (no resume, but instant) ──
+                with tab3:
                     st.info(
                         "Click each button below — **Gmail compose opens** with the cold email pre-filled.  \n"
                         "📎 To add your resume: click the **paperclip icon** in Gmail before hitting Send."
@@ -719,9 +776,6 @@ if start_new_run or st.session_state.get("resume_run", False):
                             )
                         st.markdown("---")
 
-
-
-# =========================
 # RENDER PAST SEARCHES (At end to capture new saves immediately)
 # =========================
 with st.sidebar:
