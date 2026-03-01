@@ -185,18 +185,54 @@ if st.session_state.viewing_past_session:
     else:
         st.info("💡 Salary estimates shown in INR auto-populated from role database. Enable **'Extract Salaries with AI'** for more precise data.")
     
-    # --- Job Table ---
+    # --- Job Table with Filters ---
     st.subheader("💼 All Matched Jobs")
     salary_disp_map = analytics.get("salary_display", {})
-    for j in jobs_found:
+    
+    # Filter & Sort controls
+    fc1, fc2, fc3 = st.columns([2, 2, 2])
+    with fc1:
+        loc_options = ["All"] + sorted(set(j.get("location", "Remote") for j in jobs_found))
+        loc_filter = st.selectbox("📍 Filter by Location", loc_options, key="hist_loc_filter")
+    with fc2:
+        company_search = st.text_input("🔍 Search Company", value="", placeholder="e.g. Google", key="hist_company_search")
+    with fc3:
+        sort_by = st.selectbox("⇅ Sort By", ["Default", "Salary ↓ (Highest First)", "Salary ↑ (Lowest First)", "Company A→Z"], key="hist_sort")
+    
+    # Apply filters
+    filtered_jobs = jobs_found
+    if loc_filter != "All":
+        filtered_jobs = [j for j in filtered_jobs if j.get("location", "Remote") == loc_filter]
+    if company_search.strip():
+        filtered_jobs = [j for j in filtered_jobs if company_search.lower() in j["company"].lower()]
+    
+    # Apply sort
+    if sort_by == "Salary ↓ (Highest First)":
+        def _sal_key(j):
+            lbl = f"{j['title']} @ {j['company']}"
+            return analytics["salary_numeric"].get(lbl, 0)
+        filtered_jobs = sorted(filtered_jobs, key=_sal_key, reverse=True)
+    elif sort_by == "Salary ↑ (Lowest First)":
+        def _sal_key2(j):
+            lbl = f"{j['title']} @ {j['company']}"
+            return analytics["salary_numeric"].get(lbl, 0)
+        filtered_jobs = sorted(filtered_jobs, key=_sal_key2)
+    elif sort_by == "Company A→Z":
+        filtered_jobs = sorted(filtered_jobs, key=lambda j: j["company"])
+    
+    st.caption(f"Showing **{len(filtered_jobs)}** of {total} matched jobs")
+    
+    for j in filtered_jobs:
         with st.container():
-            c1, c2, c3 = st.columns([3, 2, 2])
+            c1, c2 = st.columns([3, 4])
             c1.markdown(f"**[🔗 {j['title']} @ {j['company']}]({j['url']})**")
-            c2.success(f"📬 [{j['email']}](mailto:{j['email']})" if j['email'] else "📬 N/A")
-            # Show INR if available, else show raw salary string
+            c1.caption(f"📍 {j.get('location', 'Remote')}")
             label = f"{j['title']} @ {j['company']}"
             inr_display = salary_disp_map.get(label, j['salary'])
-            c3.info(f"💰 {inr_display}")
+            with c2:
+                col_e, col_s = st.columns(2)
+                col_e.success(f"📬 [{j['email']}](mailto:{j['email']})" if j['email'] else "📬 N/A")
+                col_s.info(f"💰 {inr_display}")
             if j['skills']:
                 st.caption("Skills: " + " ".join([f"`{s}`" for s in j['skills']][:10]))
             st.markdown("---")

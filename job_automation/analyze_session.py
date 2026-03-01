@@ -11,23 +11,36 @@ import os
 from collections import Counter
 import urllib.request
 import json as _json
+from datetime import datetime as _dt
 
-_USD_TO_INR_CACHE = {"rate": None}
+RATE_CACHE_FILE = "usd_inr_cache.json"
 
 def get_usd_to_inr() -> float:
-    """Fetch live USD to INR exchange rate. Falls back to 84.0 if offline."""
-    if _USD_TO_INR_CACHE["rate"] is not None:
-        return _USD_TO_INR_CACHE["rate"]
+    """Fetch live USD to INR exchange rate, cached daily to disk. Falls back to 84.0 if offline."""
+    today = _dt.now().strftime("%Y-%m-%d")
+    
+    # Check disk cache first
+    try:
+        if os.path.exists(RATE_CACHE_FILE):
+            with open(RATE_CACHE_FILE, "r") as f:
+                cached = _json.load(f)
+            if cached.get("date") == today:
+                return float(cached["rate"])
+    except Exception:
+        pass
+    
+    # Fetch fresh rate
     try:
         url = "https://open.er-api.com/v6/latest/USD"
         with urllib.request.urlopen(url, timeout=5) as resp:
             data = _json.loads(resp.read())
-        rate = data["rates"]["INR"]
-        _USD_TO_INR_CACHE["rate"] = rate
+        rate = float(data["rates"]["INR"])
+        # Save to disk cache
+        with open(RATE_CACHE_FILE, "w") as f:
+            _json.dump({"date": today, "rate": rate}, f)
         return rate
     except Exception:
-        _USD_TO_INR_CACHE["rate"] = 84.0  # Reasonable offline fallback
-        return 84.0
+        return 84.0  # Offline fallback
 
 def usd_to_inr_str(usd_val: int) -> str:
     """Convert a USD int to a formatted INR string in lakhs."""
@@ -183,6 +196,21 @@ def parse_markdown_session(md_text: str, use_ai_for_salary: bool = False) -> dic
         email_match = re.search(r"\*\*📬 Contact Email:\*\* ([^\s\n]+)", block)
         email = email_match.group(1) if email_match else ""
 
+        # Try to extract location
+        location = "Remote"  # default
+        loc_field = re.search(r"\*\*📍 Location:\*\* (.+)", block)
+        if loc_field:
+            location = loc_field.group(1).strip()
+        else:
+            # Keyword fallback on block text
+            block_lower = block.lower()
+            if "hybrid" in block_lower:
+                location = "Hybrid"
+            elif "onsite" in block_lower or "on-site" in block_lower or "in-office" in block_lower:
+                location = "Onsite"
+            elif "remote" in block_lower:
+                location = "Remote"
+
         # Try to find salary in the text first (regex)
         salary = "Not disclosed"
         # Check new format (💰 Expected Salary field)
@@ -219,6 +247,7 @@ def parse_markdown_session(md_text: str, use_ai_for_salary: bool = False) -> dic
             "company": company,
             "url": apply_url,
             "email": email,
+            "location": location,
             "skills": matched_skills,
             "salary": salary
         })

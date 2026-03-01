@@ -60,10 +60,15 @@ def fetch_real_jobs(keyword, location="remote"):
                 company = company_elem.text.strip()
                 job_url = url_elem["href"].split("?")[0]
                 
+                # Try to extract location from card
+                loc_elem = card.find("span", class_="job-search-card__location")
+                job_location = loc_elem.text.strip() if loc_elem else location
+                
                 jobs.append({
                     "title": title,
                     "company": company,
                     "url": job_url,
+                    "location": job_location,
                     "description": f"Role: {title} at {company}. (LinkedIn listing). Candidate must evaluate fit based on standard {keyword} responsibilities."
                 })
     except Exception as e:
@@ -81,6 +86,7 @@ def fetch_real_jobs(keyword, location="remote"):
                     "title": r.get("title"),
                     "company": r.get("company_name"),
                     "url": r.get("url"),
+                    "location": r.get("candidate_required_location", "Remote"),
                     "description": BeautifulSoup(r.get("description", ""), "html.parser").text[:500] + "..." # Truncate HTML
                 })
     except Exception as e:
