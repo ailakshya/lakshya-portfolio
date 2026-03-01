@@ -17,7 +17,7 @@ status:
 superuser: true
 
 # Role/position
-role: AI Researcher & Systems Engineer
+role: AI Researcher & Systems Engineer | PyTorch, Go, Multimodal Learning | High-Performance GPU Infrastructure
 
 # Organizations/Affiliations
 organizations:
@@ -25,7 +25,7 @@ organizations:
     url: https://manipal.edu/mit.html
 
 # Short bio (displayed in user profile at end of posts)
-bio: M.Tech AI & ML student specializing in Multimodal Representation Learning and Advanced Systems Engineering.
+bio: Specializing in Multimodal Representation Learning and Advanced Systems Engineering. Building high-concurrency infrastructure and unified vision-language models.
 
 # Interests
 interests:
@@ -59,7 +59,7 @@ work:
     date_start: 2025-01-01
     date_end: ''
     summary: |
-      specializing in Multimodal Representation Learning and Advanced Systems Engineering.
+      Published First-Author Research on Adaptive Gradient Harmonization to mitigate Modality Dominance. Reduced edge model compute costs via deep Knowledge Distillation. Architected highly concurrent Go-based data ingestion systems and low-level GPU infrastructure.
 
 # Education
 education:
@@ -93,8 +93,15 @@ social:
 #   text: Download CV
 ---
 
-I am an **M.Tech student in AI & ML** at Manipal Institute of Technology, specializing in **Multimodal Representation Learning** and **Optimization Dynamics**. My research focuses on solving fundamental problems like "Modality Laziness" in unified models.
+I am an AI Researcher and High-Performance Systems Engineer specializing in Multimodal Representation Learning and GPU optimizations. My passion lies at the intersection of designing massive, highly concurrent data infrastructure and training state-of-the-art vision-language models for edge and cloud deployment.
 
-Beyond theory, I am a strong **Systems Engineer** with deep expertise in **Go (Golang)**, **PostgreSQL**, and **low-level GPU optimization**. I bridge the gap between cutting-edge AI research and robust, scalable production systems.
+My recent research on "Adaptive Gradient Harmonization" tackles modality dominance directly in unified representation learning, while my applied engineering work focuses on stripping down inference costs via deep Knowledge Distillation and Network Pruning.
 
-Innovating at the Intersection of **AI & Systems**.
+I don’t just train models in isolation—I build the underlying high-performance infrastructure to serve them at scale.
+
+**Technical Stack:**
+► Core: Python, Go (Golang)
+► AI/ML: PyTorch, Multimodal LLMs, RAG, Knowledge Distillation, Model Pruning
+► Infrastructure & Systems: GPU Optimization, PostgreSQL, NextJS, High-Concurrency APIs
+
+I am currently seeking roles as a Machine Learning Systems Engineer, Multimodal AI Engineer, or Applied Scientist, where I can push both frontier research and low-latency systems infrastructure.
