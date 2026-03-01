@@ -28,19 +28,22 @@ ADZUNA_APP_KEY = "YOUR-KEY"
 
 *Note: The script currently defaults to searching for "Machine Learning Systems Engineer" and "AI Research Intern" but you can change the `JOB_KEYWORDS` array inside the script to whatever you want.*
 
-## 3. Run the Automation
+## 3. Launch the Web Portal
 
-Run the script from your terminal:
+Run the Streamlit app from your terminal:
 
 ```bash
-python automate_jobs.py
+streamlit run app.py
 ```
 
-## 4. The Output
+This will automatically open a sleek web interface in your browser (usually at `http://localhost:8501`).
 
-Once finished, the script will generate a brand new Markdown file called `job_matches_report.md` in the same directory.
+## 4. Using the Portal
 
-If you open `job_matches_report.md`, you will see:
-1. Every job that strictly matches your Multimodal & PyTorch background.
-2. The direct link to apply.
-3. A pre-written, highly persuasive cold email tailored specifically to the company's job description, proving why your Adaptive Gradient Harmonization research makes you a perfect fit. All you have to do is copy, paste, and send!
+1. **Enter API Keys**: Paste your OpenAI key into the sidebar (it is masked for security).
+2. **Edit Profile**: Your M.Tech resume is pre-loaded in the sidebar. You can tweak it on the fly.
+3. **Search**: Enter a job title and location in the main panel.
+4. **Hit "Start AI Job Hunt"**: 
+   - The portal will scrape jobs.
+   - You will see a real-time progress bar as GPT-4 evaluates every single job.
+   - Highly aligned matches will pop up as rich Markdown cards, complete with the AI's reasoning and a pre-written, highly persuasive outreach email ready to copy and send!
