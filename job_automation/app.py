@@ -3,6 +3,7 @@ import os
 import json
 from datetime import datetime
 from collections import defaultdict
+from analyze_session import parse_markdown_session
 try:
     import plotly.graph_objects as go
     HAS_PLOTLY = True
@@ -95,13 +96,60 @@ if st.session_state.last_export_md and not st.session_state.viewing_past_session
     st.markdown("---")
 
 if st.session_state.viewing_past_session:
-    st.info(f"📂 **Viewing Historical Search:** {st.session_state.viewing_past_session['name']}")
+    session_name = st.session_state.viewing_past_session['name']
+    session_text = st.session_state.viewing_past_session['content']
+    
+    st.info(f"📂 **Viewing Historical Search:** `{session_name}`")
     if st.button("❌ Close History View"):
         st.session_state.viewing_past_session = None
         st.rerun()
     
-    with st.container():
-        st.markdown(st.session_state.viewing_past_session['content'])
+    # Parse the session file for analytics
+    analytics = parse_markdown_session(session_text)
+    jobs_found = analytics["jobs"]
+    total = analytics["total_matches"]
+    
+    st.success(f"🎉 Session contained **{total} AI-Matched Jobs**")
+    
+    # --- Job Table ---
+    st.subheader("💼 Matched Jobs")
+    for j in jobs_found:
+        with st.container():
+            c1, c2, c3 = st.columns([3, 2, 2])
+            c1.markdown(f"**[🔗 {j['title']} @ {j['company']}]({j['url']})**")
+            c2.success(f"📬 [{j['email']}](mailto:{j['email']})" if j['email'] else "📬 N/A")
+            c3.info(f"💰 {j['salary']}")
+            if j['skills']:
+                st.caption("Skills: " + " ".join([f"`{s}`" for s in j['skills']]))
+            st.markdown("---")
+    
+    # --- Skill Frequency Chart ---
+    skill_data = analytics["skill_counts"]
+    if skill_data:
+        st.subheader("📊 Skill Frequency Across Matched Jobs")
+        sorted_skills = sorted(skill_data.items(), key=lambda x: x[1], reverse=True)
+        skill_names = [s[0] for s in sorted_skills]
+        skill_counts = [s[1] for s in sorted_skills]
+        
+        if HAS_PLOTLY:
+            fig = go.Figure(go.Bar(
+                x=skill_counts, y=skill_names, orientation='h',
+                marker=dict(color=skill_counts, colorscale='Viridis', showscale=True),
+                text=skill_counts, textposition='outside'
+            ))
+            fig.update_layout(
+                title=f"Skills In Demand — Session {session_name}",
+                xaxis_title="Frequency", yaxis=dict(autorange="reversed"),
+                height=max(400, len(skill_names) * 35),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="white")
+            )
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # --- Full raw report (collapsible) ---
+    with st.expander("📄 View Full Raw Report", expanded=False):
+        st.markdown(session_text)
+    
     st.markdown("---")
 
 # =========================
