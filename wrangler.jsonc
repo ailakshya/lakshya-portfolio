@@ -4,6 +4,9 @@
   "assets": {
     "directory": "./public"
   },
+  "build": {
+    "command": "pnpm install && hugo --minify"
+  },
   "observability": {
     "enabled": true
   },
