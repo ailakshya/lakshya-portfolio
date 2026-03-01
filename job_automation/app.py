@@ -189,7 +189,20 @@ if start_new_run or st.session_state.get("resume_run", False):
             with st.expander("👀 View Matches Found Before Disconnection", expanded=False):
                 st.markdown(export_md)
                 
+        # Stop button container
+        stop_btn_col1, stop_btn_col2 = st.columns([1, 4])
+        stop_clicked = stop_btn_col1.button("🛑 Stop Search & Finalize", key="stop_search_btn")
+        
+        if stop_clicked:
+            st.session_state.stop_search = True
+        else:
+            st.session_state.stop_search = False
+
         for i in range(start_idx, len(jobs)):
+            if st.session_state.get("stop_search", False):
+                st.warning("🛑 Job Hunt Stopped Early by User.")
+                break
+                
             job = jobs[i]
             # Evaluate using OpenAI
             is_match, reason, contact_email = evaluate_job_match(job)
