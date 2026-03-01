@@ -106,7 +106,8 @@ def evaluate_job_match(job):
     
     prompt = f"""
     You are an expert technical recruiter for elite AI labs (like OpenAI, DeepMind, Anthropic).
-    Analyze this Job Description and extract structured details. The candidate is highly specialized in Multimodal ML and High-Performance Systems (Go/PyTorch).
+    Analyze this Job Description and extract structured details. The candidate is an Indian national
+    (M.Tech AI graduate), based in India, highly specialized in Multimodal ML and High-Performance Systems (Go/PyTorch).
     
     Return ONLY a valid JSON object with these exact keys:
     {{
@@ -115,15 +116,22 @@ def evaluate_job_match(job):
       "contact_email": "found_or_guessed_email@company.com",
       "skills_required": ["PyTorch", "Go", "CUDA"],
       "key_requirements": ["3+ years ML experience", "PhD preferred"],
-      "expected_salary": "$150,000 - $200,000"
+      "expected_salary": "$150,000 - $200,000",
+      "visa_friendly": true,
+      "citizenship_note": "Open to international candidates / No restrictions mentioned"
     }}
     
     Rules:
-    - skills_required: list of up to 8 specific technical skills mentioned in the job description.
-    - key_requirements: list of up to 5 concise requirements (experience, degree, etc.).
-    - expected_salary: exact salary range from job description, or "Not specified" if missing.
-    - contact_email: extract from job text, or guess based on company name (e.g. careers@company.com).
-    - is_match: true if this is a strong fit for the candidate.
+    - skills_required: list of up to 8 specific technical skills mentioned.
+    - key_requirements: list of up to 5 concise requirements.
+    - expected_salary: exact salary range from job description, or "Not specified".
+    - contact_email: extract from text, or guess based on company name.
+    - visa_friendly: FALSE if the job mentions any of: "US citizenship required", "must be a US citizen",
+      "security clearance", "ITAR", "DoD", "Top Secret", "must be authorized to work in US without sponsorship",
+      "NYC based mandatory", "must relocate to NYC". TRUE otherwise or if job mentions "visa sponsorship",
+      "H1B", "OPT", "international candidates welcome", or has no citizenship restrictions.
+    - is_match: true ONLY if strong technical fit AND visa_friendly is true.
+    - citizenship_note: brief note on the citizenship/visa policy found in the posting.
 
     Job Title: {job['title']}
     Company: {job['company']}
@@ -142,7 +150,6 @@ def evaluate_job_match(job):
         result = response.choices[0].message.content
         try:
             import json
-            # Strip markdown code fences if present
             clean = result.strip().strip("```json").strip("```").strip()
             data = json.loads(clean)
             is_match = data.get("is_match", False)
@@ -151,13 +158,16 @@ def evaluate_job_match(job):
             skills = data.get("skills_required", [])
             requirements = data.get("key_requirements", [])
             salary = data.get("expected_salary", "Not specified")
-            return is_match, reason, contact_email, skills, requirements, salary
+            visa_friendly = data.get("visa_friendly", True)
+            citizenship_note = data.get("citizenship_note", "No restrictions mentioned")
+            return is_match, reason, contact_email, skills, requirements, salary, visa_friendly, citizenship_note
         except Exception:
             is_match = "true" in result.lower()
-            return is_match, result, f"careers@{job['company'].lower().replace(' ', '')}.com", [], [], "Not specified"
+            return is_match, result, f"careers@{job['company'].lower().replace(' ', '')}.com", [], [], "Not specified", True, "Unknown"
     except Exception as e:
-        print(f"❌ OpenAI API Error during evaluation. Check your API Key.")
-        return False, str(e), "", [], [], "Not specified"
+        print(f"\u274c OpenAI API Error during evaluation. Check your API Key.")
+        return False, str(e), "", [], [], "Not specified", False, "Error"
+
 
 def draft_cold_email(job):
     """

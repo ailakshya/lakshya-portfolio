@@ -1,9 +1,12 @@
 import streamlit as st
 import os
 import json
+import tempfile
 from datetime import datetime
 from collections import defaultdict
 from analyze_session import parse_markdown_session
+from recruiter_tracker import log_email_sent, was_contacted, get_all_records, update_status
+from email_sender import send_cold_email, extract_subject_from_draft
 try:
     import plotly.graph_objects as go
     HAS_PLOTLY = True
@@ -38,9 +41,31 @@ with st.sidebar:
     
     st.markdown("---")
     
+    # Gmail Sender Config
+    st.subheader("📧 Email Sender (Gmail)")
+    gmail_address = st.text_input("📤 Your Gmail Address", value=os.environ.get("SENDER_GMAIL", ""), placeholder="you@gmail.com")
+    gmail_app_password = st.text_input("🔑 Gmail App Password", type="password", value=os.environ.get("SENDER_APP_PASS", ""),
+                                       help="Generate at: myaccount.google.com/apppasswords — NOT your regular password!")
+    portfolio_url = st.text_input("🌐 Portfolio URL", value="https://ailakshya.in")
+    
+    st.markdown("---")
+    
+    # Resume PDF Upload
+    st.subheader("📎 Resume Attachment")
+    resume_file = st.file_uploader("Upload Resume PDF (attached to emails)", type=["pdf"])
+    resume_path = None
+    if resume_file is not None:
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp.write(resume_file.read())
+        tmp.close()
+        resume_path = tmp.name
+        st.success(f"✅ Resume ready: `{resume_file.name}`")
+    
+    st.markdown("---")
+    
     # Resume editing
     st.subheader("📄 Your Profile / Resume")
-    resume_text = st.text_area("Edit Profile to feed to AI:", value=USER_RESUME, height=300)
+    resume_text = st.text_area("Edit Profile to feed to AI:", value=USER_RESUME, height=200)
 
 # =========================
 # STATE RECOVERY UTILITIES
@@ -351,8 +376,8 @@ if start_new_run or st.session_state.get("resume_run", False):
                 break
                 
             job = jobs[i]
-            # Evaluate using OpenAI (6-tuple: is_match, reason, email, skills, requirements, salary)
-            is_match, reason, contact_email, skills, requirements, salary = evaluate_job_match(job)
+            # Evaluate using OpenAI (8-tuple: is_match, reason, email, skills, requirements, salary, visa_friendly, citizenship_note)
+            is_match, reason, contact_email, skills, requirements, salary, visa_friendly, citizenship_note = evaluate_job_match(job)
             
             if is_match:
                 match_count += 1
@@ -362,7 +387,17 @@ if start_new_run or st.session_state.get("resume_run", False):
                     st.session_state.skills_data[skill] = st.session_state.skills_data.get(skill, 0) + 1
                 
                 with st.container():
+                    # Visa badge
+                    prev_contact = was_contacted(job['company'], contact_email)
+                    visa_badge = "🇮🇳 ✅ Visa Friendly" if visa_friendly else "🇺🇸 🚧 Citizenship Restricted"
+                    prev_badge = f" — ✉️ Contacted {prev_contact['date_sent']}" if prev_contact else ""
+                    
                     st.markdown(f"### [🔗 {job['title']} @ {job['company']}]({job['url']})")
+                    st.caption(f"{visa_badge}  |  📍 {job.get('location', 'Remote')}{prev_badge}")
+                    if not visa_friendly:
+                        st.error(f"🚨 **Citizenship Note:** {citizenship_note}")
+                    else:
+                        st.caption(f"📜 {citizenship_note}")
                     
                     c1, c2, c3 = st.columns(3)
                     c1.success(f"📬 **Recruiter Email**\n\n[{contact_email}](mailto:{contact_email})")
@@ -381,9 +416,38 @@ if start_new_run or st.session_state.get("resume_run", False):
                     # Draft the email
                     with st.spinner(f"Drafting cold email to {job['company']}..."):
                         email_draft = draft_cold_email(job)
-                        
+                    
                     with st.expander("✉️ View Drafted Cold Email", expanded=True):
                         st.code(email_draft, language="markdown")
+                    
+                    # One-click Send Email Button
+                    send_key = f"send_{i}_{job['company'].replace(' ','_')}"
+                    if st.button(f"📤 Send Email to {job['company']} Now", key=send_key, type="primary"):
+                        if not gmail_address or not gmail_app_password:
+                            st.error("❌ Add your Gmail address and App Password in the sidebar to send emails.")
+                        else:
+                            subject = extract_subject_from_draft(email_draft)
+                            ok, msg = send_cold_email(
+                                sender_email=gmail_address,
+                                sender_app_password=gmail_app_password,
+                                recipient_email=contact_email,
+                                subject=subject,
+                                body=email_draft,
+                                resume_path=resume_path,
+                                portfolio_url=portfolio_url
+                            )
+                            if ok:
+                                st.success(msg)
+                                log_email_sent(
+                                    job_title=job['title'],
+                                    company=job['company'],
+                                    recruiter_email=contact_email,
+                                    email_subject=subject,
+                                    email_body=email_draft,
+                                    job_url=job['url']
+                                )
+                            else:
+                                st.error(msg)
                     
                     st.markdown("---")
                     
@@ -468,6 +532,37 @@ with st.sidebar:
         st.info("No past searches run yet.")
 
 # =========================
+# CRM: OUTREACH HISTORY SIDEBAR
+# =========================
+with st.sidebar:
+    st.markdown("---")
+    st.subheader("📋 Outreach History (CRM)")
+    all_records = get_all_records()
+    if all_records:
+        STATUS_COLORS = {
+            "sent": "🔵",
+            "replied": "🟢",
+            "offer": "🌟",
+            "rejected": "🔴",
+            "no_response": "⚫"
+        }
+        for rec in reversed(all_records[-15:]):  # Show last 15
+            icon = STATUS_COLORS.get(rec["status"], "🔵")
+            st.markdown(f"{icon} **{rec['company']}**")
+            st.caption(f"{rec['job_title']} · {rec['date_sent']}")
+            st.caption(f"📬 {rec['recruiter_email']}")
+            new_status = st.selectbox(
+                "Status", ["sent", "replied", "offer", "rejected", "no_response"],
+                index=["sent", "replied", "offer", "rejected", "no_response"].index(rec.get("status", "sent")),
+                key=f"status_{rec['id']}"
+            )
+            if new_status != rec.get("status", "sent"):
+                update_status(rec["id"], new_status)
+            st.markdown("---")
+    else:
+        st.info("No emails sent yet. Use the 📤 Send button on a matched job to start tracking.")
+
+# =========================
 # SKILLS ANALYTICS CHART
 # =========================
 if st.session_state.skills_data:
@@ -516,3 +611,4 @@ if st.session_state.skills_data:
         st.warning(f"**📈 Skills Gap:** The following are in-demand skills you may want to highlight more: **{', '.join(missing[:8])}**")
     
     st.markdown("*Chart is reset each new search session.*")
+
