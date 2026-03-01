@@ -426,35 +426,57 @@ if start_new_run or st.session_state.get("resume_run", False):
                     with st.expander("✉️ View Drafted Cold Email", expanded=True):
                         st.code(email_draft, language="markdown")
                     
-                    # One-click Send Email Button
-                    send_key = f"send_{i}_{job['company'].replace(' ','_')}"
-                    if st.button(f"📤 Send Email to {job['company']} Now", key=send_key, type="primary"):
-                        if not gmail_address and not sendgrid_api_key:
-                            st.error("❌ Add a SendGrid API key or Gmail address in the sidebar to send emails.")
-                        else:
-                            subject = extract_subject_from_draft(email_draft)
-                            ok, msg = send_cold_email(
-                                sender_email=gmail_address,
-                                recipient_email=contact_email,
-                                subject=subject,
-                                body=email_draft,
-                                resume_path=resume_path,
-                                portfolio_url=portfolio_url,
-                                sendgrid_api_key=sendgrid_api_key,
-                                gmail_app_password=gmail_app_password
-                            )
-                            if ok:
-                                st.success(msg)
-                                log_email_sent(
-                                    job_title=job['title'],
-                                    company=job['company'],
-                                    recruiter_email=contact_email,
-                                    email_subject=subject,
-                                    email_body=email_draft,
-                                    job_url=job['url']
-                                )
+                    subject = extract_subject_from_draft(email_draft)
+                    
+                    # ── EASIEST: mailto link (zero setup, opens any email app) ──
+                    import urllib.parse
+                    body_preview = email_draft[:1800]
+                    mailto_url = (f"mailto:{urllib.parse.quote(contact_email)}"
+                                  f"?subject={urllib.parse.quote(subject)}"
+                                  f"&body={urllib.parse.quote(body_preview)}")
+                    
+                    btn_col1, btn_col2 = st.columns([2, 3])
+                    with btn_col1:
+                        st.markdown(
+                            f'<a href="{mailto_url}" target="_blank">'
+                            f'<button style="background:#1E88E5;color:white;border:none;'
+                            f'padding:10px 20px;border-radius:8px;font-size:15px;'
+                            f'cursor:pointer;width:100%">📧 Open in Email App</button></a>',
+                            unsafe_allow_html=True
+                        )
+                        st.caption("Opens Gmail/Outlook/Mail with everything pre-filled — no setup needed")
+                    
+                    # ── OPTIONAL: SendGrid tracked send ──
+                    with btn_col2:
+                        send_key = f"send_{i}_{job['company'].replace(' ','_')}"
+                        if st.button(f"📤 Send & Track via SendGrid", key=send_key):
+                            if not gmail_address and not sendgrid_api_key:
+                                st.error("❌ Add a SendGrid API key in the sidebar to use tracked sending.")
                             else:
-                                st.error(msg)
+                                ok, msg_out = send_cold_email(
+                                    sender_email=gmail_address,
+                                    recipient_email=contact_email,
+                                    subject=subject,
+                                    body=email_draft,
+                                    resume_path=resume_path,
+                                    portfolio_url=portfolio_url,
+                                    sendgrid_api_key=sendgrid_api_key,
+                                    gmail_app_password=gmail_app_password
+                                )
+                                if ok:
+                                    st.success(msg_out)
+                                    log_email_sent(
+                                        job_title=job['title'],
+                                        company=job['company'],
+                                        recruiter_email=contact_email,
+                                        email_subject=subject,
+                                        email_body=email_draft,
+                                        job_url=job['url']
+                                    )
+                                else:
+                                    st.error(msg_out)
+                        st.caption("Tracked send with resume attachment (optional — needs SendGrid key)")
+
                     
                     st.markdown("---")
                     
