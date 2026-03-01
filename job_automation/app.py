@@ -2,6 +2,12 @@ import streamlit as st
 import os
 import json
 from datetime import datetime
+from collections import defaultdict
+try:
+    import plotly.graph_objects as go
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
 from automate_jobs import fetch_real_jobs, evaluate_job_match, draft_cold_email, USER_RESUME
 
 STATE_FILE = "job_run_state.json"
@@ -16,6 +22,8 @@ if "last_filename" not in st.session_state:
     st.session_state.last_filename = ""
 if "viewing_past_session" not in st.session_state:
     st.session_state.viewing_past_session = None
+if "skills_data" not in st.session_state:
+    st.session_state.skills_data = {}
 
 st.title("🤖 AI Job Finder & Automated Outreach")
 st.markdown("Search for jobs online, evaluate them against your specific profile using OpenAI, and instantly draft 10x cold emails.")
@@ -204,24 +212,38 @@ if start_new_run or st.session_state.get("resume_run", False):
                 break
                 
             job = jobs[i]
-            # Evaluate using OpenAI
-            is_match, reason, contact_email = evaluate_job_match(job)
+            # Evaluate using OpenAI (6-tuple: is_match, reason, email, skills, requirements, salary)
+            is_match, reason, contact_email, skills, requirements, salary = evaluate_job_match(job)
             
             if is_match:
                 match_count += 1
+                
+                # Accumulate skills data for chart
+                for skill in skills:
+                    st.session_state.skills_data[skill] = st.session_state.skills_data.get(skill, 0) + 1
+                
                 with st.container():
                     st.markdown(f"### [🔗 {job['title']} @ {job['company']}]({job['url']})")
-                    st.success(f"**📬 Contact Email:** [{contact_email}](mailto:{contact_email})")
                     
-                    # Display the AI's logic
-                    st.info(f"**AI Reasoning:**\n\n{reason}")
+                    c1, c2, c3 = st.columns(3)
+                    c1.success(f"📬 **Recruiter Email**\n\n[{contact_email}](mailto:{contact_email})")
+                    c2.info(f"💰 **Expected Salary**\n\n{salary}")
+                    c3.warning(f"🧠 **AI Reasoning**\n\n{reason}")
+                    
+                    if requirements:
+                        with st.expander("📋 Key Requirements", expanded=False):
+                            for req in requirements:
+                                st.markdown(f"- {req}")
+                    
+                    if skills:
+                        with st.expander("🛠️ Required Skills", expanded=False):
+                            st.markdown(" ".join([f"`{s}`" for s in skills]))
                     
                     # Draft the email
-                    with st.spinner(f"Drafting highly personalized cold email to {job['company']}..."):
+                    with st.spinner(f"Drafting cold email to {job['company']}..."):
                         email_draft = draft_cold_email(job)
                         
-                    # Show the email in a nice copyable format
-                    with st.expander("📬 View Drafted Cold Email", expanded=True):
+                    with st.expander("✉️ View Drafted Cold Email", expanded=True):
                         st.code(email_draft, language="markdown")
                     
                     st.markdown("---")
@@ -229,8 +251,13 @@ if start_new_run or st.session_state.get("resume_run", False):
                     # Append to export
                     export_md += f"## ✅ MATCH: {job['title']} @ {job['company']}\n"
                     export_md += f"**Apply Link:** [Click Here to Apply]({job['url']})\n"
-                    export_md += f"**📬 Contact Email:** {contact_email}\n\n"
-                    export_md += f"**AI Reasoning:**\n```json\n{reason}\n```\n\n"
+                    export_md += f"**📬 Contact Email:** {contact_email}\n"
+                    export_md += f"**💰 Expected Salary:** {salary}\n"
+                    export_md += f"**🧠 AI Reasoning:** {reason}\n\n"
+                    if requirements:
+                        export_md += "**📋 Key Requirements:**\n" + "\n".join([f"- {r}" for r in requirements]) + "\n\n"
+                    if skills:
+                        export_md += "**🛠️ Required Skills:** " + ", ".join(skills) + "\n\n"
                     export_md += f"### ✉️ Drafted Cold Email:\n\n---\n{email_draft}\n---\n\n"
             
             # Save checkpoint state after every loop iteration
@@ -300,3 +327,53 @@ with st.sidebar:
             st.markdown("---")
     else:
         st.info("No past searches run yet.")
+
+# =========================
+# SKILLS ANALYTICS CHART
+# =========================
+if st.session_state.skills_data:
+    st.markdown("---")
+    st.subheader("📊 In-Demand Skills Analytics (Current Session)")
+    
+    # Sort by frequency descending
+    sorted_skills = sorted(st.session_state.skills_data.items(), key=lambda x: x[1], reverse=True)
+    skill_names = [s[0] for s in sorted_skills]
+    skill_counts = [s[1] for s in sorted_skills]
+    
+    if HAS_PLOTLY:
+        fig = go.Figure(go.Bar(
+            x=skill_counts,
+            y=skill_names,
+            orientation='h',
+            marker=dict(
+                color=skill_counts,
+                colorscale='Viridis',
+                showscale=True,
+                colorbar=dict(title="Frequency")
+            ),
+            text=skill_counts,
+            textposition='outside'
+        ))
+        fig.update_layout(
+            title="Most Required Skills Across Matched Jobs",
+            xaxis_title="Number of Jobs Requiring Skill",
+            yaxis_title="Skill",
+            yaxis=dict(autorange="reversed"),
+            height=max(400, len(skill_names) * 35),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white")
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Install plotly for the chart: `pip install plotly`")
+        st.table({"Skill": skill_names, "Frequency": skill_counts})
+
+    # Missing skills gap analysis
+    your_skills = {"PyTorch", "Go", "Python", "PostgreSQL", "LLM", "RAG", "CUDA",
+                   "Multimodal", "Machine Learning", "Deep Learning", "Computer Vision"}
+    missing = [s for s in skill_names if s not in your_skills]
+    if missing:
+        st.warning(f"**📈 Skills Gap:** The following are in-demand skills you may want to highlight more: **{', '.join(missing[:8])}**")
+    
+    st.markdown("*Chart is reset each new search session.*")

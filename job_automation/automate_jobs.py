@@ -100,14 +100,27 @@ def evaluate_job_match(job):
     
     prompt = f"""
     You are an expert technical recruiter for elite AI labs (like OpenAI, DeepMind, Anthropic).
-    Analyze this Job Description against the Candidate's Resume. This candidate is highly specialized in Multimodal ML and High-Performance Systems (Go/PyTorch).
+    Analyze this Job Description and extract structured details. The candidate is highly specialized in Multimodal ML and High-Performance Systems (Go/PyTorch).
     
-    Return ONLY a JSON response in this exact format:
-    {{"is_match": true, "match_reason": "Brief 1-sentence explanation why it is or isn't a fit.", "contact_email": "found_or_guessed_email@company.com"}}
+    Return ONLY a valid JSON object with these exact keys:
+    {{
+      "is_match": true,
+      "match_reason": "Brief 1-sentence explanation.",
+      "contact_email": "found_or_guessed_email@company.com",
+      "skills_required": ["PyTorch", "Go", "CUDA"],
+      "key_requirements": ["3+ years ML experience", "PhD preferred"],
+      "expected_salary": "$150,000 - $200,000"
+    }}
     
-    If the job description contains a recruiter or application email, extract it exactly. If not, intelligently guess the most likely careers email based on the company name (e.g., careers@company.com or jobs@company.com).
+    Rules:
+    - skills_required: list of up to 8 specific technical skills mentioned in the job description.
+    - key_requirements: list of up to 5 concise requirements (experience, degree, etc.).
+    - expected_salary: exact salary range from job description, or "Not specified" if missing.
+    - contact_email: extract from job text, or guess based on company name (e.g. careers@company.com).
+    - is_match: true if this is a strong fit for the candidate.
 
     Job Title: {job['title']}
+    Company: {job['company']}
     Job Description: {job['description']}
 
     Candidate Resume:
@@ -123,17 +136,22 @@ def evaluate_job_match(job):
         result = response.choices[0].message.content
         try:
             import json
-            data = json.loads(result)
+            # Strip markdown code fences if present
+            clean = result.strip().strip("```json").strip("```").strip()
+            data = json.loads(clean)
             is_match = data.get("is_match", False)
             reason = data.get("match_reason", "")
             contact_email = data.get("contact_email", f"careers@{job['company'].lower().replace(' ', '')}.com")
-            return is_match, reason, contact_email
+            skills = data.get("skills_required", [])
+            requirements = data.get("key_requirements", [])
+            salary = data.get("expected_salary", "Not specified")
+            return is_match, reason, contact_email, skills, requirements, salary
         except Exception:
             is_match = "true" in result.lower()
-            return is_match, result, f"careers@{job['company'].lower().replace(' ', '')}.com"
+            return is_match, result, f"careers@{job['company'].lower().replace(' ', '')}.com", [], [], "Not specified"
     except Exception as e:
         print(f"❌ OpenAI API Error during evaluation. Check your API Key.")
-        return False, str(e), ""
+        return False, str(e), "", [], [], "Not specified"
 
 def draft_cold_email(job):
     """
