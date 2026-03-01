@@ -31,7 +31,21 @@ with st.sidebar:
 st.subheader("🔍 Search Parameters")
 col1, col2 = st.columns(2)
 with col1:
-    job_keyword = st.text_input("Job Keyword(s)", value="Machine Learning Systems Engineer")
+    presets = [
+        "Machine Learning Systems Engineer",
+        "AI Research Intern",
+        "GPU Performance Engineer",
+        "Data Infrastructure Engineer",
+        "Backend Engineer - Go",
+        "Computer Vision Researcher",
+        "Multimodal AI Engineer",
+        "Custom Keyword..."
+    ]
+    selected_preset = st.selectbox("Job Keyword(s) Preset", presets)
+    if selected_preset == "Custom Keyword...":
+        job_keyword = st.text_input("Enter Custom Keyword", value="")
+    else:
+        job_keyword = selected_preset
 with col2:
     job_location = st.text_input("Location", value="Remote")
 
