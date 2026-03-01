@@ -41,11 +41,17 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Gmail Sender Config
-    st.subheader("📧 Email Sender (Gmail)")
-    gmail_address = st.text_input("📤 Your Gmail Address", value=os.environ.get("SENDER_GMAIL", ""), placeholder="you@gmail.com")
-    gmail_app_password = st.text_input("🔑 Gmail App Password", type="password", value=os.environ.get("SENDER_APP_PASS", ""),
-                                       help="Generate at: myaccount.google.com/apppasswords — NOT your regular password!")
+    # Email Sender Config
+    st.subheader("📧 Email Sender")
+    st.info("💡 **Recommended:** Use SendGrid (free, works with any Google account)\n[Sign up at sendgrid.com](https://signup.sendgrid.com)")
+    sendgrid_api_key = st.text_input("🔑 SendGrid API Key (Recommended)", type="password",
+                                     value=os.environ.get("SENDGRID_API_KEY", ""),
+                                     help="Sign up free at sendgrid.com → Settings → API Keys")
+    st.markdown("**or** Gmail (personal accounts with 2FA only):")
+    gmail_address = st.text_input("📤 Gmail Address", value=os.environ.get("SENDER_GMAIL", ""), placeholder="you@gmail.com")
+    gmail_app_password = st.text_input("🔒 Gmail App Password", type="password", value=os.environ.get("SENDER_APP_PASS", ""),
+                                       help="myaccount.google.com/apppasswords — personal Gmail + 2FA only")
+    sender_email = sendgrid_api_key and gmail_address or gmail_address
     portfolio_url = st.text_input("🌐 Portfolio URL", value="https://ailakshya.in")
     
     st.markdown("---")
@@ -423,18 +429,19 @@ if start_new_run or st.session_state.get("resume_run", False):
                     # One-click Send Email Button
                     send_key = f"send_{i}_{job['company'].replace(' ','_')}"
                     if st.button(f"📤 Send Email to {job['company']} Now", key=send_key, type="primary"):
-                        if not gmail_address or not gmail_app_password:
-                            st.error("❌ Add your Gmail address and App Password in the sidebar to send emails.")
+                        if not gmail_address and not sendgrid_api_key:
+                            st.error("❌ Add a SendGrid API key or Gmail address in the sidebar to send emails.")
                         else:
                             subject = extract_subject_from_draft(email_draft)
                             ok, msg = send_cold_email(
                                 sender_email=gmail_address,
-                                sender_app_password=gmail_app_password,
                                 recipient_email=contact_email,
                                 subject=subject,
                                 body=email_draft,
                                 resume_path=resume_path,
-                                portfolio_url=portfolio_url
+                                portfolio_url=portfolio_url,
+                                sendgrid_api_key=sendgrid_api_key,
+                                gmail_app_password=gmail_app_password
                             )
                             if ok:
                                 st.success(msg)

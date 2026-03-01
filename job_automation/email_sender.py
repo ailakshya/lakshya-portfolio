@@ -1,13 +1,13 @@
 """
 email_sender.py
-Gmail SMTP email sender for the AI Job Portal.
-Supports attaching a resume PDF and including a portfolio website link.
+Supports two email providers:
+  1. Gmail SMTP with App Password (personal Gmail only)
+  2. SendGrid API (recommended - works with any account, free 100/day)
 
-Setup:
-1. Enable 2FA on your Gmail account
-2. Go to https://myaccount.google.com/apppasswords
-3. Create an App Password named "Job Portal"
-4. Use that 16-char password in the sidebar
+SendGrid setup (2 minutes):
+  1. Go to https://signup.sendgrid.com (free account)
+  2. Settings → API Keys → Create API Key (Full Access)
+  3. Paste the key in the sidebar
 """
 import smtplib
 import os
@@ -17,61 +17,139 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 
-def send_cold_email(
+def _attach_resume(msg: MIMEMultipart, resume_path: str):
+    """Attach a PDF resume file to the email message."""
+    if resume_path and os.path.exists(resume_path):
+        with open(resume_path, "rb") as f:
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(f.read())
+        encoders.encode_base64(part)
+        filename = os.path.basename(resume_path)
+        part.add_header("Content-Disposition", f"attachment; filename={filename}")
+        msg.attach(part)
+        return True
+    return False
+
+
+def send_via_sendgrid(
+    api_key: str,
     sender_email: str,
-    sender_app_password: str,
     recipient_email: str,
     subject: str,
     body: str,
     resume_path: str = None,
     portfolio_url: str = "https://ailakshya.in"
 ) -> tuple:
-    """
-    Send a cold email via Gmail SMTP.
-    Optionally attaches a resume PDF and appends portfolio link.
-    Returns (success: bool, message: str)
-    """
-    if not sender_email or not sender_app_password:
-        return False, "❌ Gmail address and App Password are required."
-    if not recipient_email or "@" not in recipient_email:
-        return False, "❌ Invalid recipient email address."
+    """Send via SendGrid HTTP API. Works with any Google/email account."""
+    try:
+        import urllib.request
+        import json
 
+        full_body = body
+        if portfolio_url and portfolio_url not in body:
+            full_body += f"\n\n🌐 Portfolio: {portfolio_url}"
+
+        payload = {
+            "personalizations": [{"to": [{"email": recipient_email}]}],
+            "from": {"email": sender_email},
+            "subject": subject,
+            "content": [{"type": "text/plain", "value": full_body}]
+        }
+
+        # Add resume as attachment if present
+        if resume_path and os.path.exists(resume_path):
+            import base64
+            with open(resume_path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode()
+            payload["attachments"] = [{
+                "content": encoded,
+                "type": "application/pdf",
+                "filename": os.path.basename(resume_path),
+                "disposition": "attachment"
+            }]
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.sendgrid.com/v3/mail/send",
+            data=data,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status in (200, 202):
+                resume_note = " (+ resume attached)" if resume_path and os.path.exists(resume_path) else ""
+                return True, f"✅ Email sent to {recipient_email} via SendGrid{resume_note}"
+            else:
+                return False, f"❌ SendGrid returned status {resp.status}"
+    except Exception as e:
+        error_msg = str(e)
+        if "400" in error_msg or "403" in error_msg:
+            return False, "❌ SendGrid error: Check your API key and make sure your sender email is verified at sendgrid.com."
+        return False, f"❌ SendGrid error: {error_msg}"
+
+
+def send_via_gmail(
+    sender_email: str,
+    app_password: str,
+    recipient_email: str,
+    subject: str,
+    body: str,
+    resume_path: str = None,
+    portfolio_url: str = "https://ailakshya.in"
+) -> tuple:
+    """Send via Gmail SMTP (requires App Password — personal Gmail only)."""
     try:
         msg = MIMEMultipart()
         msg["From"] = sender_email
         msg["To"] = recipient_email
         msg["Subject"] = subject
 
-        # Append portfolio link to body
         full_body = body
         if portfolio_url and portfolio_url not in body:
             full_body += f"\n\n🌐 Portfolio: {portfolio_url}"
-
         msg.attach(MIMEText(full_body, "plain"))
 
-        # Attach resume PDF if provided
-        if resume_path and os.path.exists(resume_path):
-            with open(resume_path, "rb") as f:
-                part = MIMEBase("application", "octet-stream")
-                part.set_payload(f.read())
-            encoders.encode_base64(part)
-            filename = os.path.basename(resume_path)
-            part.add_header("Content-Disposition", f"attachment; filename={filename}")
-            msg.attach(part)
+        has_resume = _attach_resume(msg, resume_path)
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(sender_email, sender_app_password)
+            server.login(sender_email, app_password)
             server.sendmail(sender_email, recipient_email, msg.as_string())
 
-        resume_note = f" (+ resume attached)" if resume_path and os.path.exists(resume_path) else ""
-        return True, f"✅ Email sent to {recipient_email}{resume_note}"
-
+        resume_note = " (+ resume attached)" if has_resume else ""
+        return True, f"✅ Email sent to {recipient_email} via Gmail{resume_note}"
     except smtplib.SMTPAuthenticationError:
-        return False, "❌ Gmail auth failed. Use an App Password, not your regular password."
-    except smtplib.SMTPException as e:
-        return False, f"❌ SMTP Error: {str(e)}"
+        return False, "❌ Gmail auth failed. App Passwords require a personal Gmail with 2FA. Try SendGrid instead."
     except Exception as e:
-        return False, f"❌ Unexpected error: {str(e)}"
+        return False, f"❌ Gmail error: {str(e)}"
+
+
+def send_cold_email(
+    sender_email: str,
+    recipient_email: str,
+    subject: str,
+    body: str,
+    resume_path: str = None,
+    portfolio_url: str = "https://ailakshya.in",
+    sendgrid_api_key: str = "",
+    gmail_app_password: str = ""
+) -> tuple:
+    """
+    Auto-selects provider: SendGrid if API key provided, else Gmail SMTP.
+    """
+    if not recipient_email or "@" not in recipient_email:
+        return False, "❌ Invalid recipient email address."
+
+    if sendgrid_api_key and sendgrid_api_key.strip():
+        return send_via_sendgrid(sendgrid_api_key, sender_email, recipient_email,
+                                  subject, body, resume_path, portfolio_url)
+    elif gmail_app_password and gmail_app_password.strip():
+        return send_via_gmail(sender_email, gmail_app_password, recipient_email,
+                               subject, body, resume_path, portfolio_url)
+    else:
+        return False, "❌ Please provide either a SendGrid API key or a Gmail App Password in the sidebar."
 
 
 def extract_subject_from_draft(email_body: str) -> str:
@@ -81,3 +159,5 @@ def extract_subject_from_draft(email_body: str) -> str:
         if line.lower().startswith("subject:"):
             return line[8:].strip()
     return "Exciting Opportunity: AI/ML Engineer Application"
+
+
