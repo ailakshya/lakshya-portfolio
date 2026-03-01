@@ -100,19 +100,90 @@ if st.session_state.viewing_past_session:
     session_text = st.session_state.viewing_past_session['content']
     
     st.info(f"📂 **Viewing Historical Search:** `{session_name}`")
-    if st.button("❌ Close History View"):
-        st.session_state.viewing_past_session = None
-        st.rerun()
     
+    col_close, col_ai = st.columns([1, 3])
+    with col_close:
+        if st.button("❌ Close History View"):
+            st.session_state.viewing_past_session = None
+            st.rerun()
+    with col_ai:
+        use_ai = st.toggle("🤖 Extract Salaries with AI (uses OpenAI tokens)", value=False)
+
     # Parse the session file for analytics
-    analytics = parse_markdown_session(session_text)
+    with st.spinner("🔍 Analyzing session..."):
+        analytics = parse_markdown_session(session_text, use_ai_for_salary=use_ai)
     jobs_found = analytics["jobs"]
     total = analytics["total_matches"]
     
-    st.success(f"🎉 Session contained **{total} AI-Matched Jobs**")
+    st.success(f"🎉 Session `{session_name}` contained **{total} AI-Matched Jobs**")
+    
+    # Metric summary row
+    salaries_found = [v for v in analytics['salary_data'].values() if v not in ('Not disclosed', 'Not specified', 'AI key not set', 'Not specified')]
+    met1, met2, met3 = st.columns(3)
+    met1.metric("💼 Total Matches", total)
+    met2.metric("💰 Jobs with Salary Data", len(salaries_found))
+    met3.metric("🛠️ Unique Skills Detected", len(analytics['skill_counts']))
+    
+    st.markdown("---")
+    
+    # --- Skill Frequency Chart ---
+    skill_data = analytics["skill_counts"]
+    if skill_data:
+        st.subheader("📊 Skill Demand Frequency")
+        sorted_skills = sorted(skill_data.items(), key=lambda x: x[1], reverse=True)
+        skill_names = [s[0] for s in sorted_skills]
+        skill_counts_vals = [s[1] for s in sorted_skills]
+        
+        if HAS_PLOTLY:
+            fig_skills = go.Figure(go.Bar(
+                x=skill_counts_vals, y=skill_names, orientation='h',
+                marker=dict(color=skill_counts_vals, colorscale='Viridis', showscale=True,
+                           colorbar=dict(title="Count")),
+                text=skill_counts_vals, textposition='outside'
+            ))
+            fig_skills.update_layout(
+                title=f"Skills Required Across {total} Matched Jobs",
+                xaxis_title="Number of Job Listings",
+                yaxis=dict(autorange="reversed"),
+                height=max(400, len(skill_names) * 32),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="white"), margin=dict(l=20, r=20)
+            )
+            st.plotly_chart(fig_skills, use_container_width=True)
+    
+    # --- Salary Chart ---
+    salary_numeric = analytics.get("salary_numeric", {})
+    salary_data_all = analytics.get("salary_data", {})
+    if salary_numeric:
+        st.subheader("💰 Expected Salary by Role")
+        sorted_sal = sorted(salary_numeric.items(), key=lambda x: x[1], reverse=True)
+        sal_labels = [k[:45] + "..." if len(k) > 45 else k for k, _ in sorted_sal]
+        sal_vals = [v for _, v in sorted_sal]
+        
+        if HAS_PLOTLY:
+            fig_sal = go.Figure(go.Bar(
+                x=sal_vals, y=sal_labels, orientation='h',
+                marker=dict(color=sal_vals, colorscale='RdYlGn', showscale=True,
+                           colorbar=dict(title="USD/yr")),
+                text=[f"${v:,.0f}" for v in sal_vals], textposition='outside'
+            ))
+            fig_sal.update_layout(
+                title="Estimated Annual Salary (USD)",
+                xaxis_title="Annual Salary (USD)",
+                xaxis_tickformat="$,.0f",
+                yaxis=dict(autorange="reversed"),
+                height=max(400, len(sal_labels) * 32),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="white"), margin=dict(l=20, r=20)
+            )
+            st.plotly_chart(fig_sal, use_container_width=True)
+    elif use_ai:
+        st.info("No parseable salary data found even with AI analysis.")
+    else:
+        st.info("💡 Enable **'Extract Salaries with AI'** above to estimate salary ranges using your OpenAI key.")
     
     # --- Job Table ---
-    st.subheader("💼 Matched Jobs")
+    st.subheader("💼 All Matched Jobs")
     for j in jobs_found:
         with st.container():
             c1, c2, c3 = st.columns([3, 2, 2])
@@ -120,31 +191,8 @@ if st.session_state.viewing_past_session:
             c2.success(f"📬 [{j['email']}](mailto:{j['email']})" if j['email'] else "📬 N/A")
             c3.info(f"💰 {j['salary']}")
             if j['skills']:
-                st.caption("Skills: " + " ".join([f"`{s}`" for s in j['skills']]))
+                st.caption("Skills: " + " ".join([f"`{s}`" for s in j['skills']][:10]))
             st.markdown("---")
-    
-    # --- Skill Frequency Chart ---
-    skill_data = analytics["skill_counts"]
-    if skill_data:
-        st.subheader("📊 Skill Frequency Across Matched Jobs")
-        sorted_skills = sorted(skill_data.items(), key=lambda x: x[1], reverse=True)
-        skill_names = [s[0] for s in sorted_skills]
-        skill_counts = [s[1] for s in sorted_skills]
-        
-        if HAS_PLOTLY:
-            fig = go.Figure(go.Bar(
-                x=skill_counts, y=skill_names, orientation='h',
-                marker=dict(color=skill_counts, colorscale='Viridis', showscale=True),
-                text=skill_counts, textposition='outside'
-            ))
-            fig.update_layout(
-                title=f"Skills In Demand — Session {session_name}",
-                xaxis_title="Frequency", yaxis=dict(autorange="reversed"),
-                height=max(400, len(skill_names) * 35),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="white")
-            )
-            st.plotly_chart(fig, use_container_width=True)
     
     # --- Full raw report (collapsible) ---
     with st.expander("📄 View Full Raw Report", expanded=False):

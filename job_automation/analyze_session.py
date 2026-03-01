@@ -3,14 +3,14 @@ analyze_session.py
 Parses a saved AI Job Hunt Markdown file and extracts:
   - List of matched companies / job titles
   - Skill frequency chart data (keyword NLP)
-  - Salary mentions
-  - Email contacts
+  - Salary estimation via OpenAI
 Returns structured data consumable by app.py
 """
 import re
+import os
 from collections import Counter
 
-# Common tech skills to look for in the reasoning / email text
+# Common tech skills to look for in the text
 SKILL_KEYWORDS = [
     "PyTorch", "TensorFlow", "Python", "Go", "Golang", "CUDA",
     "C++", "JavaScript", "TypeScript", "Rust", "Java", "Kubernetes",
@@ -21,19 +21,59 @@ SKILL_KEYWORDS = [
     "Model Pruning", "MLOps", "Spark", "Hadoop", "Redis", "Kafka",
     "FastAPI", "Flask", "Django", "React", "NextJS", "HuggingFace",
     "OpenCV", "scikit-learn", "JAX", "XLA", "ONNX", "TensorRT",
-    "VLLM", "vLLM", "LoRA", "PEFT", "Triton", "NCCL"
+    "vLLM", "LoRA", "PEFT", "Triton", "NCCL", "RLHF", "Fine-tuning",
+    "Data Engineering", "System Design", "Distributed Systems"
 ]
 
 SALARY_PATTERN = re.compile(
-    r"\$[\d,]+ ?[-–—] ?\$[\d,]+|"
+    r"\$[\d,]+ ?[-–—] ?\$[\d,]+[kKmM]?|"
     r"[\$£€][\d,.]+[kKmM]? ?[-–—] ?[\$£€][\d,.]+[kKmM]?|"
-    r"[\d,.]+[kKlL]? ?[-–—] ?[\d,.]+[kKlL]? ?(?:LPA|USD|INR|EUR)?",
+    r"[\d,.]+[kKlL] ?[-–—] ?[\d,.]+[kKlL] ?(?:LPA|USD|INR|EUR)?",
     re.IGNORECASE
 )
 
-def parse_markdown_session(md_text: str) -> dict:
+def _ai_extract_salary(job_title: str, company: str, job_text: str) -> str:
+    """Use OpenAI to estimate the expected salary for a job if not found by regex."""
+    try:
+        import openai
+        openai_key = os.environ.get("OPENAI_API_KEY", "")
+        if not openai_key or "YOUR" in openai_key:
+            return "AI key not set"
+        
+        openai.api_key = openai_key
+        prompt = f"""Based on this job posting information, estimate the expected salary range.
+Job Title: {job_title}
+Company: {company}
+Context from the posting:
+{job_text[:800]}
+
+Return ONLY a JSON object like this:
+{{"salary": "$120,000 - $180,000", "currency": "USD", "basis": "annual"}}
+
+If you genuinely cannot estimate from any of the context, return:
+{{"salary": "Not disclosed", "currency": "USD", "basis": "annual"}}
+"""
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1
+        )
+        result = response.choices[0].message.content.strip()
+        clean = result.strip("`").replace("json", "").strip()
+        import json
+        data = json.loads(clean)
+        return data.get("salary", "Not disclosed")
+    except Exception:
+        return "Not disclosed"
+
+
+def parse_markdown_session(md_text: str, use_ai_for_salary: bool = False) -> dict:
     """
     Parse a saved markdown session and return structured analytics.
+    
+    Args:
+        md_text: The full markdown text of the saved session
+        use_ai_for_salary: If True, calls OpenAI to estimate salary where not found by regex
     """
     # Split into job blocks
     blocks = re.split(r"## ✅ MATCH:", md_text)
@@ -41,12 +81,11 @@ def parse_markdown_session(md_text: str) -> dict:
 
     jobs = []
     skill_counter = Counter()
-    salaries = []
-    emails = []
+    salary_data = {}  # {job_label: salary_str}
 
     for block in blocks:
-        # Title & Company
-        title_line = block.strip().split("\n")[0]
+        lines = block.strip().split("\n")
+        title_line = lines[0].strip()
         # e.g. "Machine Learning Engineer @ Google"
         title, _, company = title_line.partition(" @ ")
         title = title.strip()
@@ -59,24 +98,33 @@ def parse_markdown_session(md_text: str) -> dict:
         # Contact email
         email_match = re.search(r"\*\*📬 Contact Email:\*\* ([^\s\n]+)", block)
         email = email_match.group(1) if email_match else ""
-        if email:
-            emails.append(email)
 
-        # AI Reasoning / email text (entire block text for skill matching)
+        # Try to find salary in the text first (regex)
+        salary = "Not disclosed"
+        # Check new format (💰 Expected Salary field)
+        salary_field = re.search(r"\*\*💰 Expected Salary:\*\* (.+)", block)
+        if salary_field:
+            salary = salary_field.group(1).strip()
+        else:
+            # Try general regex
+            salary_matches = SALARY_PATTERN.findall(block)
+            if salary_matches:
+                salary = salary_matches[0]
+
+        # Skill extraction from full block text
         full_text = block.lower()
-
-        # Skill extraction
         matched_skills = []
         for skill in SKILL_KEYWORDS:
             if skill.lower() in full_text:
                 skill_counter[skill] += 1
                 matched_skills.append(skill)
 
-        # Salary extraction
-        salary_matches = SALARY_PATTERN.findall(block)
-        salary = salary_matches[0] if salary_matches else "Not specified"
-        if salary != "Not specified":
-            salaries.append(salary)
+        # Use AI for salary if not found and AI is requested
+        if salary == "Not disclosed" and use_ai_for_salary:
+            salary = _ai_extract_salary(title, company, block)
+
+        job_label = f"{title} @ {company}"
+        salary_data[job_label] = salary
 
         jobs.append({
             "title": title,
@@ -87,10 +135,25 @@ def parse_markdown_session(md_text: str) -> dict:
             "salary": salary
         })
 
+    # Build salary chart data - parse numeric values where possible
+    salary_numeric = {}
+    for label, s in salary_data.items():
+        # Try to extract first number for approximate sorting
+        nums = re.findall(r"[\d,]+", s.replace(",", ""))
+        if nums:
+            try:
+                val = int(nums[0].replace(",", ""))
+                # Convert K to actual value
+                if "k" in s.lower() and val < 10000:
+                    val *= 1000
+                salary_numeric[label] = val
+            except Exception:
+                pass
+
     return {
         "jobs": jobs,
-        "skill_counts": dict(skill_counter.most_common(20)),
-        "salaries": salaries,
-        "emails": emails,
+        "skill_counts": dict(skill_counter.most_common(25)),
+        "salary_data": salary_data,
+        "salary_numeric": salary_numeric,
         "total_matches": len(jobs)
     }
