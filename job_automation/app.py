@@ -39,6 +39,13 @@ with col1:
         "Backend Engineer - Go",
         "Computer Vision Researcher",
         "Multimodal AI Engineer",
+        "Deep Learning Engineer",
+        "NLP Engineer",
+        "MLOps Engineer",
+        "Large Language Model (LLM) Engineer",
+        "Applied Scientist",
+        "Robotics Software Engineer",
+        "AI Hardware Architect",
         "Custom Keyword..."
     ]
     selected_preset = st.selectbox("Job Keyword(s) Preset", presets)
