@@ -7,17 +7,12 @@ st.set_page_config(page_title="AI Job Finder & Outreach Portal", page_icon="🤖
 st.title("🤖 AI Job Finder & Automated Outreach")
 st.markdown("Search for jobs online, evaluate them against your specific profile using OpenAI, and instantly draft 10x cold emails.")
 
-# =========================
-# SIDEBAR: CONFIGURATION
-# =========================
 with st.sidebar:
     st.header("⚙️ Configuration")
     
     # API Keys
     st.subheader("API Keys")
     openai_key = st.text_input("OpenAI API Key (Required)", type="password", value=os.environ.get("OPENAI_API_KEY", ""))
-    adzuna_id = st.text_input("Adzuna App ID (Optional)", type="password", value=os.environ.get("ADZUNA_APP_ID", ""))
-    adzuna_key = st.text_input("Adzuna App Key (Optional)", type="password", value=os.environ.get("ADZUNA_APP_KEY", ""))
     
     st.markdown("---")
     
@@ -59,8 +54,6 @@ with col2:
 
 # Inject keys back into env vars for the backend logic
 os.environ["OPENAI_API_KEY"] = openai_key
-os.environ["ADZUNA_APP_ID"] = adzuna_id
-os.environ["ADZUNA_APP_KEY"] = adzuna_key
 
 if st.button("🚀 Start AI Job Hunt", type="primary"):
     if not openai_key or "YOUR" in openai_key:
@@ -72,7 +65,7 @@ if st.button("🚀 Start AI Job Hunt", type="primary"):
         
         # 1. Fetching
         all_jobs = []
-        with st.status(f"Searching Adzuna for {len(job_keywords)} keywords in '{job_location}'...", expanded=False) as status:
+        with st.status(f"Global Scraping LinkedIn & Web for {len(job_keywords)} roles in '{job_location}'...", expanded=False) as status:
             for keyword in job_keywords:
                 st.write(f"Fetching '{keyword}' jobs...")
                 all_jobs.extend(fetch_real_jobs(keyword, job_location))
