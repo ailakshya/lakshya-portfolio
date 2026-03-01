@@ -153,24 +153,27 @@ if st.session_state.viewing_past_session:
     
     # --- Salary Chart ---
     salary_numeric = analytics.get("salary_numeric", {})
-    salary_data_all = analytics.get("salary_data", {})
+    salary_disp = analytics.get("salary_display", {})
+    exchange_rate = analytics.get("exchange_rate", 84.0)
     if salary_numeric:
-        st.subheader("💰 Expected Salary by Role")
+        st.subheader(f"💰 Expected Salary by Role (INR) — Live Rate: 💵 1 USD = ₹{exchange_rate:.2f}")
         sorted_sal = sorted(salary_numeric.items(), key=lambda x: x[1], reverse=True)
         sal_labels = [k[:45] + "..." if len(k) > 45 else k for k, _ in sorted_sal]
-        sal_vals = [v for _, v in sorted_sal]
+        sal_vals_inr = [v for _, v in sorted_sal]
+        sal_display_texts = [salary_disp.get(k, f"₹{v/100000:.1f}L") for k, v in sorted_sal]
         
         if HAS_PLOTLY:
             fig_sal = go.Figure(go.Bar(
-                x=sal_vals, y=sal_labels, orientation='h',
-                marker=dict(color=sal_vals, colorscale='RdYlGn', showscale=True,
-                           colorbar=dict(title="USD/yr")),
-                text=[f"${v:,.0f}" for v in sal_vals], textposition='outside'
+                x=sal_vals_inr, y=sal_labels, orientation='h',
+                marker=dict(color=sal_vals_inr, colorscale='RdYlGn', showscale=True,
+                           colorbar=dict(title="INR/yr")),
+                text=sal_display_texts, textposition='outside'
             ))
             fig_sal.update_layout(
-                title="Estimated Annual Salary (USD)",
-                xaxis_title="Annual Salary (USD)",
-                xaxis_tickformat="$,.0f",
+                title="🇮🇳 Estimated Annual Salary in Indian Rupees (INR)",
+                xaxis_title="Annual Salary (INR)",
+                xaxis_tickprefix="₹",
+                xaxis_tickformat=",.0f",
                 yaxis=dict(autorange="reversed"),
                 height=max(400, len(sal_labels) * 32),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
@@ -180,16 +183,20 @@ if st.session_state.viewing_past_session:
     elif use_ai:
         st.info("No parseable salary data found even with AI analysis.")
     else:
-        st.info("💡 Enable **'Extract Salaries with AI'** above to estimate salary ranges using your OpenAI key.")
+        st.info("💡 Salary estimates shown in INR auto-populated from role database. Enable **'Extract Salaries with AI'** for more precise data.")
     
     # --- Job Table ---
     st.subheader("💼 All Matched Jobs")
+    salary_disp_map = analytics.get("salary_display", {})
     for j in jobs_found:
         with st.container():
             c1, c2, c3 = st.columns([3, 2, 2])
             c1.markdown(f"**[🔗 {j['title']} @ {j['company']}]({j['url']})**")
             c2.success(f"📬 [{j['email']}](mailto:{j['email']})" if j['email'] else "📬 N/A")
-            c3.info(f"💰 {j['salary']}")
+            # Show INR if available, else show raw salary string
+            label = f"{j['title']} @ {j['company']}"
+            inr_display = salary_disp_map.get(label, j['salary'])
+            c3.info(f"💰 {inr_display}")
             if j['skills']:
                 st.caption("Skills: " + " ".join([f"`{s}`" for s in j['skills']][:10]))
             st.markdown("---")
