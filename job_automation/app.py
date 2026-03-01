@@ -86,16 +86,24 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Resume PDF Upload
+    # Resume PDF Upload — persists to disk so it survives page reloads
     st.subheader("📎 Resume Attachment")
+    RESUME_SAVE_PATH = "my_resume.pdf"
     resume_file = st.file_uploader("Upload Resume PDF (attached to emails)", type=["pdf"])
     resume_path = None
     if resume_file is not None:
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-        tmp.write(resume_file.read())
-        tmp.close()
-        resume_path = tmp.name
-        st.success(f"✅ Resume ready: `{resume_file.name}`")
+        # Save to disk so it persists across reloads
+        with open(RESUME_SAVE_PATH, "wb") as rf:
+            rf.write(resume_file.read())
+        resume_path = RESUME_SAVE_PATH
+        st.success(f"✅ Resume saved: `{resume_file.name}`")
+    elif os.path.exists(RESUME_SAVE_PATH):
+        resume_path = RESUME_SAVE_PATH
+        st.info(f"📂 Using saved resume: `{RESUME_SAVE_PATH}`")
+        if st.button("🗑️ Remove saved resume", key="remove_resume"):
+            os.remove(RESUME_SAVE_PATH)
+            resume_path = None
+            st.rerun()
     
     st.markdown("---")
     
@@ -326,6 +334,38 @@ if st.session_state.viewing_past_session:
         st.markdown(session_text)
     
     st.markdown("---")
+
+# =========================
+# CONTACTED COMPANIES LIST (CRM)
+# =========================
+all_crm = get_all_records()
+if all_crm:
+    st.markdown("---")
+    st.subheader("📋 Companies Already Contacted (Cold Emails Sent)")
+    
+    STATUS_EMOJI = {
+        "sent":        "🔵 Sent",
+        "replied":     "🟢 Replied",
+        "offer":       "🌟 Offer",
+        "rejected":    "🔴 Rejected",
+        "no_response": "⚫ No Response"
+    }
+    
+    rows = []
+    for r in reversed(all_crm):
+        rows.append({
+            "Company":        r.get("company", ""),
+            "Role":           r.get("job_title", ""),
+            "Recruiter Email":r.get("recruiter_email", ""),
+            "Date Sent":      r.get("date_sent", ""),
+            "Status":         STATUS_EMOJI.get(r.get("status", "sent"), r.get("status", "sent"))
+        })
+    
+    import pandas as pd
+    df = pd.DataFrame(rows)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.caption(f"Total emails sent: **{len(all_crm)}** companies. Update status in the sidebar → 📋 Outreach History.")
+
 
 # =========================
 # MAIN AREA: SEARCH ACTIONS
