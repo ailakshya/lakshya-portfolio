@@ -45,14 +45,15 @@ with col1:
         "Large Language Model (LLM) Engineer",
         "Applied Scientist",
         "Robotics Software Engineer",
-        "AI Hardware Architect",
-        "Custom Keyword..."
+        "AI Hardware Architect"
     ]
-    selected_preset = st.selectbox("Job Keyword(s) Preset", presets)
-    if selected_preset == "Custom Keyword...":
-        job_keyword = st.text_input("Enter Custom Keyword", value="")
-    else:
-        job_keyword = selected_preset
+    selected_presets = st.multiselect("Select Job Keyword(s) Presets", presets, default=["Machine Learning Systems Engineer"])
+    custom_keyword = st.text_input("Add Custom Keyword (Optional)", value="")
+    
+    # Combine selected presets and any custom keyword
+    job_keywords = selected_presets
+    if custom_keyword.strip():
+        job_keywords.append(custom_keyword.strip())
 with col2:
     job_location = st.text_input("Location", value="Remote")
 
@@ -64,13 +65,27 @@ os.environ["ADZUNA_APP_KEY"] = adzuna_key
 if st.button("🚀 Start AI Job Hunt", type="primary"):
     if not openai_key or "YOUR" in openai_key:
         st.error("❌ You must provide a valid OpenAI API Key in the sidebar to run the AI evaluator.")
+    elif not job_keywords:
+        st.error("❌ Please select at least one job keyword preset or enter a custom keyword.")
     else:
         st.markdown("---")
         
         # 1. Fetching
-        with st.status(f"Searching Adzuna for '{job_keyword}' in '{job_location}'...", expanded=False) as status:
-            jobs = fetch_real_jobs(job_keyword, job_location)
-            status.update(label=f"Found {len(jobs)} potential jobs. Now filtering with AI...", state="complete")
+        all_jobs = []
+        with st.status(f"Searching Adzuna for {len(job_keywords)} keywords in '{job_location}'...", expanded=False) as status:
+            for keyword in job_keywords:
+                st.write(f"Fetching '{keyword}' jobs...")
+                all_jobs.extend(fetch_real_jobs(keyword, job_location))
+            
+            # Deduplicate by URL
+            seen_urls = set()
+            jobs = []
+            for j in all_jobs:
+                if j["url"] not in seen_urls:
+                    jobs.append(j)
+                    seen_urls.add(j["url"])
+                    
+            status.update(label=f"Found {len(jobs)} unique potential jobs across {len(job_keywords)} keywords. Now filtering with AI...", state="complete")
         
         if not jobs:
             st.warning("No jobs found with those keywords.")
