@@ -1,7 +1,10 @@
 import streamlit as st
 import os
+import json
 from datetime import datetime
 from automate_jobs import fetch_real_jobs, evaluate_job_match, draft_cold_email, USER_RESUME
+
+STATE_FILE = "job_run_state.json"
 
 st.set_page_config(page_title="AI Job Finder & Outreach Portal", page_icon="🤖", layout="wide")
 
@@ -53,6 +56,45 @@ with st.sidebar:
     resume_text = st.text_area("Edit Profile to feed to AI:", value=USER_RESUME, height=300)
 
 # =========================
+# STATE RECOVERY UTILITIES
+# =========================
+def load_state():
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    return None
+
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f)
+
+def clear_state():
+    if os.path.exists(STATE_FILE):
+        os.remove(STATE_FILE)
+
+run_state = load_state()
+
+# =========================
+# RESUME BANNER
+# =========================
+if run_state and run_state.get("status") == "processing":
+    total = len(run_state["jobs"])
+    current = run_state["current_index"]
+    st.warning(f"⚠️ **Interrupted Job Hunt Detected:** You have an incomplete AI evaluation paused at {current} / {total} jobs.")
+    
+    colA, colB = st.columns([1, 4])
+    with colA:
+        if st.button("▶️ Resume Job Hunt", type="primary"):
+            st.session_state.resume_run = True
+    with colB:
+        if st.button("❌ Cancel & Discard"):
+            clear_state()
+            st.rerun()
+    st.markdown("---")
+else:
+    st.session_state.resume_run = False
+
+# =========================
 # MAIN AREA: SEARCH ACTIONS
 # =========================
 st.subheader("🔍 Search Parameters")
@@ -87,45 +129,66 @@ with col2:
 # Inject keys back into env vars for the backend logic
 os.environ["OPENAI_API_KEY"] = openai_key
 
-if st.button("🚀 Start AI Job Hunt", type="primary"):
+start_new_run = st.button("🚀 Start AI Job Hunt", type="primary")
+
+if start_new_run or st.session_state.get("resume_run", False):
     if not openai_key or "YOUR" in openai_key:
         st.error("❌ You must provide a valid OpenAI API Key in the sidebar to run the AI evaluator.")
-    elif not job_keywords:
+    elif not job_keywords and not st.session_state.get("resume_run"):
         st.error("❌ Please select at least one job keyword preset or enter a custom keyword.")
     else:
         st.markdown("---")
         
-        # 1. Fetching
-        all_jobs = []
-        with st.status(f"Global Scraping LinkedIn & Web for {len(job_keywords)} roles in '{job_location}'...", expanded=False) as status:
-            for keyword in job_keywords:
-                st.write(f"Fetching '{keyword}' jobs...")
-                all_jobs.extend(fetch_real_jobs(keyword, job_location))
+        # If starting fresh
+        if start_new_run:
+            clear_state()
+            all_jobs = []
+            with st.status(f"Global Scraping LinkedIn & Web for {len(job_keywords)} roles in '{job_location}'...", expanded=False) as status:
+                for keyword in job_keywords:
+                    st.write(f"Fetching '{keyword}' jobs...")
+                    all_jobs.extend(fetch_real_jobs(keyword, job_location))
+                
+                # Deduplicate by URL
+                seen_urls = set()
+                jobs = []
+                for j in all_jobs:
+                    if j["url"] not in seen_urls:
+                        jobs.append(j)
+                        seen_urls.add(j["url"])
+                        
+                status.update(label=f"Found {len(jobs)} unique potential jobs across {len(job_keywords)} keywords. Now filtering with AI...", state="complete")
             
-            # Deduplicate by URL
-            seen_urls = set()
-            jobs = []
-            for j in all_jobs:
-                if j["url"] not in seen_urls:
-                    jobs.append(j)
-                    seen_urls.add(j["url"])
-                    
-            status.update(label=f"Found {len(jobs)} unique potential jobs across {len(job_keywords)} keywords. Now filtering with AI...", state="complete")
-        
-        if not jobs:
-            st.warning("No jobs found with those keywords.")
-            st.stop()
+            if not jobs:
+                st.warning("No jobs found with those keywords.")
+                st.stop()
+                
+            # Initialize state
+            run_state = {
+                "status": "processing",
+                "jobs": jobs,
+                "current_index": 0,
+                "match_count": 0,
+                "export_md": f"# AI Job Hunt Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            }
+            save_state(run_state)
             
-        # 2. Filtering & Emailing
-        match_count = 0
-        progress_bar = st.progress(0)
+        # 2. Filtering & Emailing Phase
+        jobs = run_state["jobs"]
+        start_idx = run_state["current_index"]
+        match_count = run_state["match_count"]
+        export_md = run_state["export_md"]
         
-        # Initialize export data
-        export_md = f"# AI Job Hunt Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        progress_bar = st.progress(start_idx / len(jobs) if len(jobs) > 0 else 0)
         
-        st.subheader("✨ AI Evaluated Matches")
+        st.subheader(f"✨ AI Evaluated Matches (Resuming from {start_idx}/{len(jobs)})" if st.session_state.get("resume_run") else "✨ AI Evaluated Matches")
         
-        for i, job in enumerate(jobs):
+        # Render previous matches from the markdown export string (so they don't disappear on resume)
+        if start_idx > 0 and "## ✅ MATCH:" in export_md:
+            with st.expander("👀 View Matches Found Before Disconnection", expanded=False):
+                st.markdown(export_md)
+                
+        for i in range(start_idx, len(jobs)):
+            job = jobs[i]
             # Evaluate using OpenAI
             is_match, reason, contact_email = evaluate_job_match(job)
             
@@ -155,9 +218,21 @@ if st.button("🚀 Start AI Job Hunt", type="primary"):
                     export_md += f"**AI Reasoning:**\n```json\n{reason}\n```\n\n"
                     export_md += f"### ✉️ Drafted Cold Email:\n\n---\n{email_draft}\n---\n\n"
             
+            # Save checkpoint state after every loop iteration
+            run_state["current_index"] = i + 1
+            run_state["match_count"] = match_count
+            run_state["export_md"] = export_md
+            save_state(run_state)
+            
             # Update Progress
             progress_bar.progress((i + 1) / len(jobs))
             
+        # Run Complete! Clear checkpoint state
+        run_state["status"] = "completed"
+        save_state(run_state)
+        clear_state()
+        st.session_state.resume_run = False
+        
         if match_count == 0:
             st.warning("The AI evaluated all the jobs, but none were a strong enough technical match for your elite profile. Try broadening the search keyword!")
         else:
