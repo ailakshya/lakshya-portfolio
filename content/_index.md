@@ -40,16 +40,6 @@ sections:
         shape: circle # Options: circle (default), square, rounded
   - block: markdown
     content:
-      title: '📄 My Resume'
-      subtitle: ''
-      text: |-
-        <iframe src="/uploads/resume.pdf" width="100%" height="800px" style="border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);"></iframe>
-    design:
-      columns: '1'
-      spacing:
-        padding: ['2rem', '0', '4rem', '0']
-  - block: markdown
-    content:
       title: '🔬 Research Highlights'
       subtitle: ''
       text: |-
