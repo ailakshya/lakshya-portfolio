@@ -52,24 +52,43 @@ languages:
 
 # Work Experience
 work:
-  - position: AI Researcher & Systems Engineer
-    company_name: Manipal Institute of Technology
-    company_url: 'https://manipal.edu/mit.html'
+  - position: Software Engineer (Full Stack)
+    company_name: Freelance / Self-Directed
+    company_url: ''
     company_logo: ''
-    date_start: 2025-01-01
+    date_start: 2025-06-01
     date_end: ''
     summary: |
-      Published First-Author Research on Adaptive Gradient Harmonization to mitigate Modality Dominance. Reduced edge model compute costs via deep Knowledge Distillation. Architected highly concurrent Go-based data ingestion systems and low-level GPU infrastructure.
+      - Designed and developed a high-performance CMS platform in Go (Golang) with PostgreSQL, supporting concurrent content delivery at scale.
+      - Built and deployed a Cold Storage Management System handling real-time inventory tracking, billing, and gate pass workflows for a production facility.
+      - Identified and resolved a critical race condition / concurrency bug causing inventory overselling under high load using database-level locking strategies.
+      - Set up end-to-end DevOps pipelines with Docker, GitHub Actions, and Cloudflare Workers for automated CI/CD deployment.
+  - position: Web Development Intern
+    company_name: Wildnet Technologies Ltd.
+    company_url: ''
+    company_logo: ''
+    date_start: 2024-08-01
+    date_end: 2024-10-31
+    summary: |
+      - Completed a structured internship in Web Development, actively learning and implementing modern web technologies and industry practices.
+      - Demonstrated strong initiative and technical curiosity; recognized by HR for being "exceptionally inquisitive and dedicated."
+      - Gained hands-on exposure to full-stack web development workflows in a professional software company environment.
 
 # Education
 education:
   courses:
     - course: M.Tech in AI & ML
-      institution: Manipal Institute of Technology
-      year: 2025 - 2027
-    - course: B.Tech in CSE
-      institution: SRMIST, Chennai
+      institution: Manipal Institute of Technology (Manipal University Jaipur)
+      year: Aug 2025 - Present (Exp. Jun 2027)
+    - course: B.Tech in Computer Science & Engineering
+      institution: SRMIST, Kattankulathur, Chennai
       year: 2021 - 2025
+    - course: Intermediate (Class XII)
+      institution: P.S.S.V.M.I.C. Jahangirabad, Bulandshahr (UP Board)
+      year: 2019
+    - course: High School (Class X)
+      institution: P.S.S.V.M.I.C. Jahangirabad, Bulandshahr (UP Board)
+      year: 2017
 
 # Social/Academic Networking
 # For available icons, see: https://docs.hugoblox.com/getting-started/page-builder/#icons
@@ -88,9 +107,9 @@ social:
 
 # Link to a PDF of your resume/CV from the About widget.
 # To enable, copy your resume/CV to `static/files/cv.pdf` and uncomment the lines below.
-# curiculum_vitae:
-#   link: files/cv.pdf
-#   text: Download CV
+curiculum_vitae:
+  link: uploads/resume.pdf
+  text: Download CV
 ---
 
 I am an AI Researcher and High-Performance Systems Engineer specializing in Multimodal Representation Learning and GPU optimizations. My passion lies at the intersection of designing massive, highly concurrent data infrastructure and training state-of-the-art vision-language models for edge and cloud deployment.
